@@ -37,8 +37,8 @@ const commands = [
     .setDescription('Ban a user from the server')
     .addUserOption(option => option.setName('user').setDescription('User to ban').setRequired(true)),
   new SlashCommandBuilder()
-    .setName('syncyoutubers')
-    .setDescription('List YouTube and TikTok accounts of users with MEDIA_ROLE')
+    .setName('syncmedia')
+    .setDescription('List YouTube and TikTok accounts of medias.')
 ];
 
 const rest = new REST({ version: '10' }).setToken(TOKEN);

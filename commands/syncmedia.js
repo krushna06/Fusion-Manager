@@ -1,12 +1,13 @@
 import config from '../config.js';
 import { fetchProfile } from '../utils/fetchProfile.js';
 import { formatYouTubeLink, formatTikTokLink } from '../utils/formatLinks.js';
+import { findFusionVideo } from '../utils/youtubeSearch.js';
 
 export default {
-  name: 'syncyoutubers',
+  name: 'syncmedia',
   async execute(interaction) {
     const MEDIA_ROLE = config.MEDIA_ROLE;
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply();
     const fields = [];
     try {
       await interaction.guild.members.fetch();
@@ -25,6 +26,7 @@ export default {
           const connected = data.connected_accounts || [];
           const youtube = connected.find(acc => acc.type === 'youtube');
           const tiktok = connected.find(acc => acc.type === 'tiktok');
+
           let links = [];
           if (youtube) {
             const ytUrl = formatYouTubeLink(youtube);
@@ -41,6 +43,18 @@ export default {
             value += 'No YouTube or TikTok accounts found.';
           }
           fields.push({ name: member.user?.username || userId, value, inline: false });
+
+          if (youtube && youtube.id && youtube.id.startsWith('UC')) {
+            const fusionResult = await findFusionVideo(youtube.id);
+            if (fusionResult) {
+              const date = fusionResult.publishedAt ? fusionResult.publishedAt.split('T')[0] : 'Unknown date';
+              fields.push({
+                name: 'Fusion Video Found',
+                value: `Found [${fusionResult.videoTitle}](${fusionResult.videoUrl}) containing Fusion on [${fusionResult.channelTitle}](${fusionResult.channelUrl})\nUploaded: ${date}`,
+                inline: false
+              });
+            }
+          }
         } catch (err) {
           fields.push({ name: member.user?.username || userId, value: `<@${userId}>: Error fetching profile.`, inline: false });
         }
@@ -48,7 +62,7 @@ export default {
       await interaction.editReply({
         embeds: [{
           title: 'Media Role Accounts',
-          color: 0x2F3136,
+          color: 0x323339,
           fields: fields.length > 0 ? fields : [{ name: 'No Results', value: 'No users found or no accounts linked.' }],
         }]
       });
