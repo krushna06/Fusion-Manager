@@ -1,0 +1,14 @@
+{
+  "name": "fusion-manager-bot",
+  "version": "1.0.0",
+  "description": "Discord bot for moderation and YouTube sync",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.13.0",
+    "node-fetch": "^3.3.2"
+  }
+}
