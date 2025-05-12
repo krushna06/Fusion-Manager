@@ -38,6 +38,27 @@ async function initDatabase() {
     )
   `);
   
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS suggestions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      message_id TEXT NOT NULL,
+      channel_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      status TEXT DEFAULT 'pending',
+      handler_id TEXT,
+      reason TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS suggestion_settings (
+      guild_id TEXT PRIMARY KEY,
+      suggestion_channel_id TEXT
+    )
+  `);
+  
   success('Database initialized successfully');
 }
 

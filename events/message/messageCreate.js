@@ -1,5 +1,8 @@
 import { addBugReport } from '../../database/models/bug.js';
-import { getBugReportChannel } from '../../database/models/guild.js';
+import { addSuggestion } from '../../database/models/suggestion.js';
+import { getBugReportChannel, getSuggestionChannel } from '../../database/models/guild.js';
+import { EmbedBuilder } from 'discord.js';
+import { success, error, info } from '../../utils/logger.js';
 
 export default {
   once: false,
@@ -8,7 +11,30 @@ export default {
     
     try {
       const reportChannelId = await getBugReportChannel(message.guild.id);
-      if (message.channel.id !== reportChannelId) return;
+      
+      const suggestionChannelId = await getSuggestionChannel(message.guild.id);
+      
+      if (message.channel.id === reportChannelId) {
+        await handleBugReport(message);
+      }
+      else if (message.channel.id === suggestionChannelId) {
+        await handleSuggestion(message);
+      }
+      else {
+        return;
+      }
+    } catch (error) {
+      console.error('Error processing message:', error);
+    }
+  }
+};
+
+/**
+ * handle a bug report message
+ * @param {Message} message
+ */
+async function handleBugReport(message) {
+  try {
       
       const content = message.content;
       
@@ -80,4 +106,41 @@ export default {
       console.error('Error processing bug report:', error);
     }
   }
-};
+
+/**
+ * handle a suggestion message
+ * @param {Message} message
+ */
+async function handleSuggestion(message) {
+  try {
+    const suggestionEmbed = new EmbedBuilder()
+      .setTitle('💡 New Suggestion')
+      .setDescription(message.content)
+      .setColor(0x4287f5)
+      .addFields(
+        { name: 'Status', value: 'Pending', inline: true },
+        { name: 'Suggested by', value: `<@${message.author.id}>`, inline: true }
+      )
+      .setFooter({ text: `Suggestion ID: ${message.id}` })
+      .setTimestamp();
+    
+    await message.delete().catch(err => {
+      console.error('Error deleting original suggestion message:', err);
+    });
+    
+    const suggestionMessage = await message.channel.send({ embeds: [suggestionEmbed] });
+    
+    await suggestionMessage.react('✅');
+    await suggestionMessage.react('❌');
+    
+    await addSuggestion(
+      suggestionMessage.id,
+      message.channel.id,
+      message.author.id
+    );
+    
+    success(`New suggestion created by ${message.author.tag} in ${message.guild.name}`);
+  } catch (err) {
+    error('Error processing suggestion:', err);
+  }
+}
