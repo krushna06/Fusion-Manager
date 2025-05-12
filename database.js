@@ -104,6 +104,37 @@ async function getBugReportsByStatus(status) {
   );
 }
 
+async function getUserBugStats(userId) {
+  const db = await dbPromise;
+  
+  const totalReported = await db.get(
+    `SELECT COUNT(*) as count FROM bug_reports WHERE user_id = ?`,
+    [userId]
+  );
+  
+  const accepted = await db.get(
+    `SELECT COUNT(*) as count FROM bug_reports WHERE user_id = ? AND status = 'accepted'`,
+    [userId]
+  );
+  
+  const declined = await db.get(
+    `SELECT COUNT(*) as count FROM bug_reports WHERE user_id = ? AND status = 'declined'`,
+    [userId]
+  );
+  
+  const pending = await db.get(
+    `SELECT COUNT(*) as count FROM bug_reports WHERE user_id = ? AND status = 'pending'`,
+    [userId]
+  );
+  
+  return {
+    total: totalReported.count,
+    accepted: accepted.count,
+    declined: declined.count,
+    pending: pending.count
+  };
+}
+
 export {
   initDatabase,
   addBugReport,
@@ -111,5 +142,6 @@ export {
   getBugReportByMessageId,
   setBugReportChannel,
   getBugReportChannel,
-  getBugReportsByStatus
+  getBugReportsByStatus,
+  getUserBugStats
 };

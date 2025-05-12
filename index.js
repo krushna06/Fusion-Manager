@@ -63,7 +63,11 @@ const commands = [
           { name: 'Accepted', value: 'accepted' },
           { name: 'Declined', value: 'declined' }
         )
-    )
+    ),
+  new SlashCommandBuilder()
+    .setName('profile')
+    .setDescription('View bug reporting statistics for a user')
+    .addUserOption(option => option.setName('user').setDescription('User to view profile for (defaults to yourself)'))
 ];
 
 const rest = new REST({ version: '10' }).setToken(TOKEN);
