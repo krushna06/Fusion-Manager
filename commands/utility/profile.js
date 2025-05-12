@@ -1,8 +1,12 @@
-import { EmbedBuilder } from 'discord.js';
-import { getUserBugStats } from '../database.js';
+import { EmbedBuilder, SlashCommandBuilder } from 'discord.js';
+import { getUserBugStats } from '../../database/models/user.js';
 
 export default {
   name: 'profile',
+  data: new SlashCommandBuilder()
+    .setName('profile')
+    .setDescription('View bug reporting statistics for a user')
+    .addUserOption(option => option.setName('user').setDescription('User to view profile for (defaults to yourself)')),
   async execute(interaction) {
     try {
       const targetUser = interaction.options.getUser('user') || interaction.user;

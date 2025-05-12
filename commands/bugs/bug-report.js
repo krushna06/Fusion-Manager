@@ -1,9 +1,12 @@
-import { PermissionsBitField, ChannelType } from 'discord.js';
-import { setBugReportChannel } from '../database.js';
-import config from '../config.js';
+import { PermissionsBitField, ChannelType, SlashCommandBuilder } from 'discord.js';
+import { setBugReportChannel } from '../../database/models/guild.js';
+import config from '../../config/config.json' with { type: 'json' };
 
 export default {
   name: 'bug-report',
+  data: new SlashCommandBuilder()
+    .setName('bug-report')
+    .setDescription('Setup a bug reporting channel for users'),
   async execute(interaction) {
     const hasPermission = interaction.member.permissions.has(PermissionsBitField.Flags.ManageChannels) || 
                           (config.MANAGER_ROLE && interaction.member.roles.cache.has(config.MANAGER_ROLE));

@@ -1,10 +1,14 @@
-import config from '../config.js';
-import { fetchProfile } from '../utils/fetchProfile.js';
-import { formatYouTubeLink, formatTikTokLink } from '../utils/formatLinks.js';
-import { findFusionVideo } from '../utils/youtubeSearch.js';
+import { SlashCommandBuilder } from 'discord.js';
+import config from '../../config/config.json' with { type: 'json' };
+import { fetchProfile } from '../../utils/fetchProfile.js';
+import { formatYouTubeLink, formatTikTokLink } from '../../utils/formatLinks.js';
+import { findFusionVideo } from '../../utils/youtubeSearch.js';
 
 export default {
   name: 'syncmedia',
+  data: new SlashCommandBuilder()
+    .setName('syncmedia')
+    .setDescription('List YouTube and TikTok accounts of medias.'),
   async execute(interaction) {
     const MEDIA_ROLE = config.MEDIA_ROLE;
     await interaction.deferReply();

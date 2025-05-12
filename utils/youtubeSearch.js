@@ -1,4 +1,4 @@
-import config from '../config.js';
+import config from '../config/config.json' with { type: 'json' };
 import fetch from 'node-fetch';
 
 const API_KEY = config.YOUTUBE_API_KEY;

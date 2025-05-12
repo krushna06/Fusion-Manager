@@ -1,7 +1,11 @@
-import { PermissionsBitField } from 'discord.js';
+import { PermissionsBitField, SlashCommandBuilder } from 'discord.js';
 
 export default {
   name: 'ban',
+  data: new SlashCommandBuilder()
+    .setName('ban')
+    .setDescription('Ban a user from the server')
+    .addUserOption(option => option.setName('user').setDescription('User to ban').setRequired(true)),
   async execute(interaction) {
     if (!interaction.member.permissions.has(PermissionsBitField.Flags.BanMembers)) {
       return interaction.reply({ content: 'You do not have permission to ban members.', ephemeral: true });

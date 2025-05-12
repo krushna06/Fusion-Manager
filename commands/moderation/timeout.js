@@ -1,7 +1,13 @@
 import { PermissionsBitField } from 'discord.js';
+import { SlashCommandBuilder } from 'discord.js';
 
 export default {
   name: 'timeout',
+  data: new SlashCommandBuilder()
+    .setName('timeout')
+    .setDescription('Timeout a user for a specified duration (in seconds)')
+    .addUserOption(option => option.setName('user').setDescription('User to timeout').setRequired(true))
+    .addIntegerOption(option => option.setName('duration').setDescription('Duration in seconds').setRequired(true)),
   async execute(interaction) {
     if (!interaction.member.permissions.has(PermissionsBitField.Flags.ModerateMembers)) {
       return interaction.reply({ content: 'You do not have permission to timeout members.', ephemeral: true });

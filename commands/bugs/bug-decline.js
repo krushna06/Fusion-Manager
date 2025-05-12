@@ -1,20 +1,26 @@
-import { PermissionsBitField } from 'discord.js';
-import { getBugReportByMessageId, updateBugStatus } from '../database.js';
-import config from '../config.js';
+import { PermissionsBitField, SlashCommandBuilder } from 'discord.js';
+import { getBugReportByMessageId, updateBugStatus } from '../../database/models/bug.js';
+import config from '../../config/config.json' with { type: 'json' };
 
 export default {
-  name: 'bug-accept',
+  name: 'bug-decline',
+  data: new SlashCommandBuilder()
+    .setName('bug-decline')
+    .setDescription('Decline a bug report')
+    .addStringOption(option => option.setName('msg_id').setDescription('Message ID of the bug report').setRequired(true))
+    .addStringOption(option => option.setName('reason').setDescription('Reason for declining the bug report').setRequired(true)),
   async execute(interaction) {
     const hasPermission = (config.MANAGER_ROLE && interaction.member.roles.cache.has(config.MANAGER_ROLE));
     
     if (!hasPermission) {
       return interaction.reply({ 
-        content: 'You do not have permission to accept bug reports.', 
+        content: 'You do not have permission to decline bug reports.', 
         ephemeral: true 
       });
     }
     
     const messageId = interaction.options.getString('msg_id');
+    const reason = interaction.options.getString('reason') || 'No reason provided';
     
     try {
       const bugReport = await getBugReportByMessageId(messageId);
@@ -26,14 +32,14 @@ export default {
         });
       }
       
-      if (bugReport.status !== 'pending' && bugReport.status !== 'declined') {
+      if (bugReport.status !== 'pending' && bugReport.status !== 'accepted') {
         return interaction.reply({
           content: `This bug report has already been ${bugReport.status} and cannot be changed.`,
           ephemeral: true
         });
       }
       
-      await updateBugStatus(messageId, 'accepted', interaction.user.id);
+      await updateBugStatus(messageId, 'declined', interaction.user.id, reason);
       
       try {
         const channel = await interaction.client.channels.fetch(bugReport.channel_id);
@@ -44,31 +50,37 @@ export default {
           await reaction.remove();
         }
         
-        await message.react('✅');
+        await message.react('❌');
         
-        const acceptReply = await message.reply({
+        const declineReply = await message.reply({
           embeds: [{
-            title: '✅ Bug Report Accepted',
-            description: 'This bug report has been accepted and will be addressed.',
-            color: 0x00FF00
+            title: '❌ Bug Report Declined',
+            description: `This bug report has been declined.`,
+            fields: [
+              {
+                name: 'Reason',
+                value: reason
+              }
+            ],
+            color: 0xFF0000
           }]
         });
         
         setTimeout(() => {
-          acceptReply.delete().catch(err => console.error('Error deleting acceptance message:', err));
+          declineReply.delete().catch(err => console.error('Error deleting decline message:', err));
         }, 3000);
       } catch (err) {
         console.error('Error updating original bug report message:', err);
       }
       
       return interaction.reply({
-        content: `Bug report ${messageId} has been accepted.`,
+        content: `Bug report ${messageId} has been declined with reason: ${reason}`,
         ephemeral: true
       });
     } catch (error) {
-      console.error('Error accepting bug report:', error);
+      console.error('Error declining bug report:', error);
       return interaction.reply({
-        content: `Failed to accept bug report: ${error.message}`,
+        content: `Failed to decline bug report: ${error.message}`,
         ephemeral: true
       });
     }

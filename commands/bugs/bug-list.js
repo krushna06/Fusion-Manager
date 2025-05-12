@@ -1,9 +1,22 @@
-import { PermissionsBitField } from 'discord.js';
-import { getBugReportsByStatus, getBugReportChannel } from '../database.js';
-import config from '../config.js';
+import { PermissionsBitField, SlashCommandBuilder } from 'discord.js';
+import { getBugReportsByStatus } from '../../database/models/bug.js';
+import { getBugReportChannel } from '../../database/models/guild.js';
+import config from '../../config/config.json' with { type: 'json' };
 
 export default {
   name: 'bug-list',
+  data: new SlashCommandBuilder()
+    .setName('bug-list')
+    .setDescription('List all bugs with a specific status')
+    .addStringOption(option => 
+      option.setName('type')
+        .setDescription('Type of bugs to list')
+        .setRequired(true)
+        .addChoices(
+          { name: 'Accepted', value: 'accepted' },
+          { name: 'Declined', value: 'declined' }
+        )
+    ),
   async execute(interaction) {
     const hasPermission = (config.MANAGER_ROLE && interaction.member.roles.cache.has(config.MANAGER_ROLE));
     
