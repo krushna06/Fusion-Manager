@@ -40,7 +40,39 @@ async function getBugReportsByUser(userId) {
   );
 }
 
+async function getUserSuggestionStats(userId) {
+  const db = await dbPromise;
+  
+  const totalSuggested = await db.get(
+    `SELECT COUNT(*) as count FROM suggestions WHERE user_id = ?`,
+    [userId]
+  );
+  
+  const accepted = await db.get(
+    `SELECT COUNT(*) as count FROM suggestions WHERE user_id = ? AND status = 'accepted'`,
+    [userId]
+  );
+  
+  const declined = await db.get(
+    `SELECT COUNT(*) as count FROM suggestions WHERE user_id = ? AND status = 'declined'`,
+    [userId]
+  );
+  
+  const pending = await db.get(
+    `SELECT COUNT(*) as count FROM suggestions WHERE user_id = ? AND status = 'pending'`,
+    [userId]
+  );
+  
+  return {
+    total: totalSuggested.count,
+    accepted: accepted.count,
+    declined: declined.count,
+    pending: pending.count
+  };
+}
+
 export {
   getUserBugStats,
-  getBugReportsByUser
+  getBugReportsByUser,
+  getUserSuggestionStats
 };
