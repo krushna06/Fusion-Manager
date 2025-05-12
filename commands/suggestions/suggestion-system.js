@@ -7,7 +7,13 @@ export default {
   name: 'suggestion-system',
   data: new SlashCommandBuilder()
     .setName('suggestion-system')
-    .setDescription('Setup a suggestion channel for users'),
+    .setDescription('Setup a suggestion channel for users')
+    .addChannelOption(option => 
+      option.setName('channel')
+        .setDescription('Existing channel to use for suggestions (optional)')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText)
+    ),
   async execute(interaction) {
     const hasPermission = interaction.member.permissions.has(PermissionsBitField.Flags.ManageChannels) || 
                           (config.MANAGER_ROLE && interaction.member.roles.cache.has(config.MANAGER_ROLE));
@@ -20,17 +26,22 @@ export default {
     }
     
     try {
-      const channel = await interaction.guild.channels.create({
-        name: 'suggestions',
-        type: ChannelType.GuildText,
-        topic: 'Submit your suggestions in this channel',
-        permissionOverwrites: [
-          {
-            id: interaction.guild.id,
-            allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages]
-          }
-        ]
-      });
+      let channel = interaction.options.getChannel('channel');
+      
+      if (!channel) {
+        channel = await interaction.guild.channels.create({
+          name: 'suggestions',
+          type: ChannelType.GuildText,
+          topic: 'Submit your suggestions in this channel',
+          permissionOverwrites: [
+            {
+              id: interaction.guild.id,
+              allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages]
+            }
+          ]
+        });
+        success(`New suggestion channel created in guild ${interaction.guild.name}`);
+      }
       
       await setSuggestionChannel(interaction.guild.id, channel.id);
       
@@ -52,7 +63,7 @@ export default {
         }]
       });
       
-      success(`Suggestion channel created in guild ${interaction.guild.name}`);
+      success(`Suggestion channel set to ${channel.name} in guild ${interaction.guild.name}`);
       return interaction.reply({
         content: `Suggestion channel has been set up: ${channel}`,
         ephemeral: true

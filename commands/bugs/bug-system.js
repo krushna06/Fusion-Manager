@@ -1,12 +1,19 @@
 import { PermissionsBitField, ChannelType, SlashCommandBuilder } from 'discord.js';
 import { setBugReportChannel } from '../../database/models/guild.js';
 import config from '../../config/config.json' with { type: 'json' };
+import { success, error } from '../../utils/logger.js';
 
 export default {
-  name: 'bug-report',
+  name: 'bug-system',
   data: new SlashCommandBuilder()
-    .setName('bug-report')
-    .setDescription('Setup a bug reporting channel for users'),
+    .setName('bug-system')
+    .setDescription('Setup a bug reporting channel for users')
+    .addChannelOption(option => 
+      option.setName('channel')
+        .setDescription('Existing channel to use for bug reports (optional)')
+        .setRequired(false)
+        .addChannelTypes(ChannelType.GuildText)
+    ),
   async execute(interaction) {
     const hasPermission = interaction.member.permissions.has(PermissionsBitField.Flags.ManageChannels) || 
                           (config.MANAGER_ROLE && interaction.member.roles.cache.has(config.MANAGER_ROLE));
@@ -19,17 +26,22 @@ export default {
     }
     
     try {
-      const channel = await interaction.guild.channels.create({
-        name: 'bug-reports',
-        type: ChannelType.GuildText,
-        topic: 'Report bugs in this channel using the specified format',
-        permissionOverwrites: [
-          {
-            id: interaction.guild.id,
-            allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages]
-          }
-        ]
-      });
+      let channel = interaction.options.getChannel('channel');
+      
+      if (!channel) {
+        channel = await interaction.guild.channels.create({
+          name: 'bug-reports',
+          type: ChannelType.GuildText,
+          topic: 'Report bugs in this channel using the specified format',
+          permissionOverwrites: [
+            {
+              id: interaction.guild.id,
+              allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages]
+            }
+          ]
+        });
+        success(`New bug report channel created in guild ${interaction.guild.name}`);
+      }
       
       await setBugReportChannel(interaction.guild.id, channel.id);
       
@@ -51,14 +63,15 @@ export default {
         }]
       });
       
+      success(`Bug report channel set to ${channel.name} in guild ${interaction.guild.name}`);
       return interaction.reply({
-        content: `Bug reporting channel has been set up: ${channel}`,
+        content: `Bug report channel has been set up: ${channel}`,
         ephemeral: true
       });
-    } catch (error) {
-      console.error('Error setting up bug report channel:', error);
+    } catch (err) {
+      error('Error setting up bug report channel', err);
       return interaction.reply({
-        content: `Failed to set up bug reporting system: ${error.message}`,
+        content: `Failed to set up bug report system: ${err.message}`,
         ephemeral: true
       });
     }
