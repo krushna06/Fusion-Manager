@@ -1,10 +1,8 @@
 import { Client, GatewayIntentBits, Partials } from 'discord.js';
-import fs from 'fs';
-import path from 'path';
 import config from './config/config.json' with { type: 'json' };
 import { loadCommands } from './handlers/commandHandler.js';
 import { loadEvents } from './handlers/eventHandler.js';
-import { info, error, success, load, warn, debug, COLORS } from './utils/logger.js';
+import { info, error, success } from './utils/logger.js';
 
 const client = new Client({
   intents: [
@@ -40,7 +38,7 @@ async function init() {
     
     try {
       info('Logging in to Discord...');
-      debug('Using token: ' + (config.TOKEN ? 'Token exists' : 'Token is missing'));
+      // debug('Using token: ' + (config.TOKEN ? 'Token exists' : 'Token is missing'));
       await client.login(config.TOKEN);
       success(`Logged in successfully as ${client.user.tag}`);
     } catch (loginErr) {
