@@ -101,7 +101,34 @@ async function handleBugReport(message) {
         message.channel.id,
         message.author.id
       );
-      
+
+      await message.delete().catch(err => {
+        console.error('Error deleting original bug report message:', err);
+      });
+
+      const bugEmbed = new EmbedBuilder()
+        .setTitle('🐞 New Bug Report')
+        .setColor(0xFF0000)
+        .addFields(
+          { name: 'Mode', value: mode || 'N/A', inline: true },
+          { name: 'Bug', value: bugName || 'N/A', inline: true },
+          { name: 'Reported by', value: `<@${message.author.id}>`, inline: true },
+          { name: 'Description', value: description || 'N/A', inline: false }
+        )
+        .setFooter({ text: `Bug Report ID: ${message.id}` })
+        .setTimestamp();
+
+      const attachment = message.attachments?.first();
+      if (attachment && attachment.contentType && attachment.contentType.startsWith('image/')) {
+        bugEmbed.setImage(attachment.url);
+      }
+      if (media) {
+        bugEmbed.addFields({ name: 'Media', value: media, inline: false });
+      }
+
+      await message.channel.send({ embeds: [bugEmbed] });
+
+      success(`New bug report created by ${message.author.tag} in ${message.guild.name}`);
     } catch (error) {
       console.error('Error processing bug report:', error);
     }
