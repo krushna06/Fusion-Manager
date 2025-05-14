@@ -141,12 +141,11 @@ async function handleBugReport(message) {
 async function handleSuggestion(message) {
   try {
     const suggestionEmbed = new EmbedBuilder()
-      .setTitle('💡 New Suggestion')
-      .setDescription(message.content)
-      .setColor(0x4287f5)
+      .setColor(0x323339)
       .addFields(
-        { name: 'Status', value: 'Pending', inline: true },
-        { name: 'Suggested by', value: `<@${message.author.id}>`, inline: true }
+        { name: 'Submitter', value: message.author.username, inline: true },
+        { name: 'Suggestion', value: message.content, inline: false },
+        { name: 'Results so far', value: '<:g_checkmark:1205513702783189072>: 0\n<:r_cross:1205513709963976784>: 0', inline: false }
       )
       .setFooter({ text: `Suggestion ID: ${message.id}` })
       .setTimestamp();
@@ -155,11 +154,28 @@ async function handleSuggestion(message) {
       console.error('Error deleting original suggestion message:', err);
     });
     
-    const suggestionMessage = await message.channel.send({ embeds: [suggestionEmbed] });
-    
-    await suggestionMessage.react('✅');
-    await suggestionMessage.react('❌');
-    
+    const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`suggestion_upvote_${message.id}`)
+        .setEmoji('<:g_checkmark:1205513702783189072>')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId(`suggestion_downvote_${message.id}`)
+        .setEmoji('<:r_cross:1205513709963976784>')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId(`suggestion_viewvotes_${message.id}`)
+        .setLabel('View')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+    const suggestionMessage = await message.channel.send({
+      embeds: [suggestionEmbed],
+      components: [row]
+    });
+
     await addSuggestion(
       suggestionMessage.id,
       message.channel.id,
