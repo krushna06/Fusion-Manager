@@ -9,7 +9,7 @@ if (!fs.existsSync(dataDir)) {
 }
 
 const dbPromise = open({
-  filename: path.join(dataDir, 'bugReports.db'),
+  filename: path.join(dataDir, 'database.db'),
   driver: sqlite3.Database
 });
 

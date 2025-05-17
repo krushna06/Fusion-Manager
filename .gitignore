@@ -1,5 +1,5 @@
 config/config.json
-data/bugReports.db
+data/database.db
 
 # Logs
 logs
