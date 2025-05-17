@@ -126,7 +126,17 @@ async function handleBugReport(message) {
         bugEmbed.addFields({ name: 'Media', value: media, inline: false });
       }
 
-      await message.channel.send({ embeds: [bugEmbed] });
+      const bugMessage = await message.channel.send({ embeds: [bugEmbed] });
+
+      try {
+        const threadName = mode ? `Bug Report ${mode}` : `Bug Report ${message.id}`;
+        await bugMessage.startThread({
+          name: threadName,
+          autoArchiveDuration: 1440
+        });
+      } catch (threadErr) {
+        console.error('Failed to create thread for bug report:', threadErr);
+      }
 
       success(`New bug report created by ${message.author.tag} in ${message.guild.name}`);
     } catch (error) {
