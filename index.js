@@ -2,6 +2,7 @@ import { Client, GatewayIntentBits, Partials } from 'discord.js';
 import config from './config/config.json' with { type: 'json' };
 import { loadCommands } from './handlers/commandHandler.js';
 import { loadEvents } from './handlers/eventHandler.js';
+import { initDatabase } from './database.js';
 import { info, error, success } from './utils/logger.js';
 
 const client = new Client({
@@ -17,6 +18,7 @@ const client = new Client({
 async function init() {
   try {
     info('Starting bot initialization...');
+    await initDatabase();
     
     try {
       info('Loading commands...');

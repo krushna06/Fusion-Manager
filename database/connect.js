@@ -58,7 +58,23 @@ async function initDatabase() {
       suggestion_channel_id TEXT
     )
   `);
-  
+
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS staff_applications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      channel_id TEXT NOT NULL UNIQUE,
+      staff_id TEXT NOT NULL,
+      manager_id TEXT NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      additional_users TEXT
+    )
+  `);
+
+  const pragma = await db.all(`PRAGMA table_info(staff_applications)`);
+  if (!pragma.some(col => col.name === 'additional_users')) {
+    await db.exec(`ALTER TABLE staff_applications ADD COLUMN additional_users TEXT`);
+  }
+
   success('Database initialized successfully');
 }
 

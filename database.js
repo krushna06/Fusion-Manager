@@ -36,7 +36,23 @@ async function initDatabase() {
       report_channel_id TEXT
     )
   `);
-  
+
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS staff_applications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      channel_id TEXT NOT NULL UNIQUE,
+      staff_id TEXT NOT NULL,
+      manager_id TEXT NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      additional_users TEXT
+    )
+  `);
+
+  const pragma = await db.all(`PRAGMA table_info(staff_applications)`);
+  if (!pragma.some(col => col.name === 'additional_users')) {
+    await db.exec(`ALTER TABLE staff_applications ADD COLUMN additional_users TEXT`);
+  }
+
   console.log('Database initialized successfully');
 }
 
@@ -135,8 +151,53 @@ async function getUserBugStats(userId) {
   };
 }
 
+async function addStaffApplication(channelId, staffId, managerId, createdAt) {
+  const db = await dbPromise;
+  const result = await db.run(
+    `INSERT INTO staff_applications (channel_id, staff_id, manager_id, created_at) VALUES (?, ?, ?, ?)`,
+    [channelId, staffId, managerId, createdAt]
+  );
+  return result.lastID;
+}
+
+async function getStaffApplicationByChannel(channelId) {
+  const db = await dbPromise;
+  return await db.get(
+    `SELECT * FROM staff_applications WHERE channel_id = ?`,
+    [channelId]
+  );
+}
+
+async function addAdditionalUserToStaffApplication(channelId, userId) {
+  const db = await dbPromise;
+  const row = await db.get(`SELECT additional_users FROM staff_applications WHERE channel_id = ?`, [channelId]);
+  let users = [];
+  if (row && row.additional_users) {
+    try { users = JSON.parse(row.additional_users); } catch { users = []; }
+  }
+  if (!users.includes(userId)) users.push(userId);
+  await db.run(`UPDATE staff_applications SET additional_users = ? WHERE channel_id = ?`, [JSON.stringify(users), channelId]);
+  return users;
+}
+
+async function removeAdditionalUserFromStaffApplication(channelId, userId) {
+  const db = await dbPromise;
+  const row = await db.get(`SELECT additional_users FROM staff_applications WHERE channel_id = ?`, [channelId]);
+  let users = [];
+  if (row && row.additional_users) {
+    try { users = JSON.parse(row.additional_users); } catch { users = []; }
+  }
+  users = users.filter(id => id !== userId);
+  await db.run(`UPDATE staff_applications SET additional_users = ? WHERE channel_id = ?`, [JSON.stringify(users), channelId]);
+  return users;
+}
+
 export {
   initDatabase,
+  addAdditionalUserToStaffApplication,
+  removeAdditionalUserFromStaffApplication,
+  addStaffApplication,
+  getStaffApplicationByChannel,
   addBugReport,
   updateBugStatus,
   getBugReportByMessageId,
