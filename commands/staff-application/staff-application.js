@@ -1,7 +1,7 @@
 import { PermissionsBitField, SlashCommandBuilder } from 'discord.js';
 import { addStaffApplication } from '../../database.js';
 
-const MANAGER_ROLE_ID = '878977879822721045';
+const config = require('../../config.json');
 
 export default {
   name: 'staff-application',
@@ -14,7 +14,7 @@ export default {
         .setRequired(true)
     ),
   async execute(interaction) {
-    if (!interaction.member.roles.cache.has(MANAGER_ROLE_ID)) {
+    if (!interaction.member.roles.cache.has(config.STAFF_MANAGER_ROLE)) {
       return interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
     }
     const user = interaction.options.getUser('user');
@@ -39,7 +39,7 @@ export default {
           allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages],
         },
         {
-          id: MANAGER_ROLE_ID,
+          id: config.MANAGER_ROLE,
           allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages],
         },
       ],

@@ -1,7 +1,7 @@
 import { PermissionsBitField, SlashCommandBuilder } from 'discord.js';
 import { removeAdditionalUserFromStaffApplication } from '../../database.js';
 
-const MANAGER_ROLE_ID = '878977879822721045';
+const config = require('../../config.json');
 
 export default {
   name: 'remove-user',
@@ -14,7 +14,7 @@ export default {
         .setRequired(true)
     ),
   async execute(interaction) {
-    if (!interaction.member.roles.cache.has(MANAGER_ROLE_ID)) {
+    if (!interaction.member.roles.cache.has(config.STAFF_MANAGER_ROLE)) {
       return interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
     }
     const user = interaction.options.getUser('user');
