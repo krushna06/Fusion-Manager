@@ -1,7 +1,7 @@
 import { PermissionsBitField, SlashCommandBuilder } from 'discord.js';
 import { addStaffApplication } from '../../database.js';
 
-const config = require('../../config.json');
+import config from '../../config/config.json' with { type: 'json' };
 
 export default {
   name: 'staff-application',

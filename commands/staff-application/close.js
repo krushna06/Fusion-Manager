@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 
-const config = require('../../config.json');
+import config from '../../config/config.json' with { type: 'json' };
 
 export default {
   name: 'close',
