@@ -2,7 +2,7 @@ import { Client, GatewayIntentBits, Partials } from 'discord.js';
 import config from './config/config.json' with { type: 'json' };
 import { loadCommands } from './handlers/commandHandler.js';
 import { loadEvents } from './handlers/eventHandler.js';
-import { initDatabase } from './database.js';
+import { initDatabase } from './database/connect.js';
 import { info, error, success } from './utils/logger.js';
 
 const client = new Client({
