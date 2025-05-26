@@ -70,6 +70,41 @@ async function initDatabase() {
     )
   `);
 
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS trades (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      message_id TEXT NOT NULL,
+      channel_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      looking_for TEXT NOT NULL,
+      offering TEXT NOT NULL,
+      status TEXT DEFAULT 'pending',
+      handler_id TEXT,
+      reason TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS trade_settings (
+      guild_id TEXT PRIMARY KEY,
+      trade_channel_id TEXT
+    )
+  `);
+
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS trade_offers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      trade_id INTEGER NOT NULL,
+      user_id TEXT NOT NULL,
+      status TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (trade_id) REFERENCES trades (id) ON DELETE CASCADE,
+      UNIQUE(trade_id, user_id)
+    )
+  `);
+
   const pragma = await db.all(`PRAGMA table_info(staff_applications)`);
   if (!pragma.some(col => col.name === 'additional_users')) {
     await db.exec(`ALTER TABLE staff_applications ADD COLUMN additional_users TEXT`);

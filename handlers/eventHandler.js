@@ -4,6 +4,7 @@ import { load, debug, error } from '../utils/logger.js';
 
 export async function loadEvents(client) {
   const eventFolders = ['client', 'message'];
+  const buttonHandlersPath = path.resolve('./handlers/buttons');
   let loadedEvents = 0;
   
   for (const folder of eventFolders) {
@@ -23,6 +24,22 @@ export async function loadEvents(client) {
           client.on(eventName, (...args) => event.default.execute(client, ...args));
         }
         loadedEvents++;
+      }
+    }
+  }
+  
+  if (fs.existsSync(buttonHandlersPath)) {
+    const buttonHandlerFiles = fs.readdirSync(buttonHandlersPath).filter(file => file.endsWith('.js'));
+    
+    for (const file of buttonHandlerFiles) {
+      try {
+        const buttonHandler = await import(`../handlers/buttons/${file}`);
+        if (buttonHandler.default && buttonHandler.default.name && buttonHandler.default.execute) {
+          client.on(buttonHandler.default.name, buttonHandler.default.execute);
+          loadedEvents++;
+        }
+      } catch (err) {
+        error(`Error loading button handler ${file}:`, err);
       }
     }
   }
