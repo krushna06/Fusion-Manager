@@ -194,15 +194,12 @@ async function removeAdditionalUserFromStaffApplication(channelId, userId) {
 
 export {
   initDatabase,
-  addAdditionalUserToStaffApplication,
-  removeAdditionalUserFromStaffApplication,
-  addStaffApplication,
-  getStaffApplicationByChannel,
   addBugReport,
   updateBugStatus,
   getBugReportByMessageId,
   setBugReportChannel,
   getBugReportChannel,
   getBugReportsByStatus,
-  getUserBugStats
+  getUserBugStats,
+  dbPromise
 };

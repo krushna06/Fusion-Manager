@@ -1,6 +1,5 @@
 import { PermissionsBitField, SlashCommandBuilder } from 'discord.js';
-import { removeAdditionalUserFromStaffApplication } from '../../database.js';
-
+import { removeAdditionalUserFromStaffApplication } from '../../database/models/staffApplication.js';
 import config from '../../config/config.json' with { type: 'json' };
 
 export default {
