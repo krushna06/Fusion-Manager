@@ -1,6 +1,6 @@
 import { PermissionsBitField, SlashCommandBuilder } from 'discord.js';
 import { addAdditionalUserToStaffApplication } from '../../database/models/staffApplication.js';
-import config from '../../config/config.json' with { type: 'json' };
+import roles from '../../config/roles.json' with { type: 'json' };
 
 export default {
   name: 'add-user',
@@ -14,7 +14,7 @@ export default {
     ),
   async execute(interaction) {
     try {
-      if (!interaction.member.roles.cache.has(config.STAFF_MANAGER_ROLE)) {
+      if (!interaction.member.roles.cache.has(roles.STAFF_MANAGER_ROLE)) {
         return interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
       }
       const user = interaction.options.getUser('user');

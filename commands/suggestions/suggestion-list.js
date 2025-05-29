@@ -1,7 +1,7 @@
 import { PermissionsBitField, SlashCommandBuilder } from 'discord.js';
 import { getSuggestionsByStatus } from '../../database/models/suggestion.js';
 import { getSuggestionChannel } from '../../database/models/guild.js';
-import config from '../../config/config.json' with { type: 'json' };
+import roles from '../../config/roles.json' with { type: 'json' };
 import { error } from '../../utils/logger.js';
 
 export default {
@@ -20,7 +20,7 @@ export default {
         )
     ),
   async execute(interaction) {
-    const hasPermission = (config.MANAGER_ROLE && interaction.member.roles.cache.has(config.MANAGER_ROLE));
+    const hasPermission = (roles.MANAGER_ROLE && interaction.member.roles.cache.has(roles.MANAGER_ROLE));
     
     if (!hasPermission) {
       return interaction.reply({ 

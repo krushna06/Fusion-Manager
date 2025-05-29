@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import config from '../../config/config.json' with { type: 'json' };
+import roles from '../../config/roles.json' with { type: 'json' };
 import { fetchProfile } from '../../utils/fetchProfile.js';
 import { formatYouTubeLink, formatTikTokLink } from '../../utils/formatLinks.js';
 import { findFusionVideo } from '../../utils/youtubeSearch.js';
@@ -10,7 +10,7 @@ export default {
     .setName('syncmedia')
     .setDescription('List YouTube and TikTok accounts of medias.'),
   async execute(interaction) {
-    const MEDIA_ROLE = config.MEDIA_ROLE;
+    const MEDIA_ROLE = roles.MEDIA_ROLE;
     await interaction.deferReply();
     const fields = [];
     try {
