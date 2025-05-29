@@ -13,7 +13,7 @@ export default {
         .setRequired(true)
     ),
   async execute(interaction) {
-    if (!interaction.member.roles.cache.has(roles.STAFF_MANAGER_ROLE)) {
+    if (!interaction.member.roles.cache.has(roles.STAFF_APPLICATION_MANAGER_ROLE)) {
       return interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
     }
     const user = interaction.options.getUser('user');
