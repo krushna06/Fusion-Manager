@@ -3,9 +3,9 @@ import { SlashCommandBuilder } from 'discord.js';
 import config from '../../config/config.json' with { type: 'json' };
 
 export default {
-  name: 'close',
+  name: 'staff-close',
   data: new SlashCommandBuilder()
-    .setName('close')
+    .setName('staff-close')
     .setDescription('Close this staff application channel'),
   async execute(interaction) {
     try {
