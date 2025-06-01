@@ -4,9 +4,9 @@ import roles from '../../config/roles.json' with { type: 'json' };
 import { success, error, info } from '../../utils/logger.js';
 
 export default {
-  name: 'suggestion-system',
+  name: 'suggestion-setup',
   data: new SlashCommandBuilder()
-    .setName('suggestion-system')
+    .setName('suggestion-setup')
     .setDescription('Setup a suggestion channel for users')
     .addChannelOption(option => 
       option.setName('channel')

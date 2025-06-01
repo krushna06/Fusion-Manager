@@ -4,9 +4,9 @@ import roles from '../../config/roles.json' with { type: 'json' };
 import { success, error } from '../../utils/logger.js';
 
 export default {
-  name: 'trade-system',
+  name: 'trade-setup',
   data: new SlashCommandBuilder()
-    .setName('trade-system')
+    .setName('trade-setup')
     .setDescription('Set up a trade channel for users')
     .addChannelOption(option => 
       option.setName('channel')

@@ -4,9 +4,9 @@ import roles from '../../config/roles.json' with { type: 'json' };
 import { success, error } from '../../utils/logger.js';
 
 export default {
-  name: 'bug-system',
+  name: 'bug-setup',
   data: new SlashCommandBuilder()
-    .setName('bug-system')
+    .setName('bug-setup')
     .setDescription('Setup a bug reporting channel for users')
     .addChannelOption(option => 
       option.setName('channel')

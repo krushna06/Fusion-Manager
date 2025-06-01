@@ -24,7 +24,7 @@ export default {
     .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
 
   async execute(interaction) {
-    const hasPermission = interaction.member.roles.cache.has(roles.STAFF_ROLE) || 
+    const hasPermission = roles.STAFF_ROLE.some(role => interaction.member.roles.cache.has(role)) || 
                          interaction.member.roles.cache.has(roles.MANAGER_ROLE);    
     if (!hasPermission) {
       return interaction.reply({ 
