@@ -12,9 +12,26 @@ export async function handleSuggestionButton(interaction) {
     }
 
     if (type === 'upvote' || type === 'downvote') {
-        suggestionVotes[msgId][user.id] = type;
+        if (suggestionVotes[msgId][user.id] === type) {
+            delete suggestionVotes[msgId][user.id];
+        } else {
+            suggestionVotes[msgId][user.id] = type;
+        }
+        
+        const votes = suggestionVotes[msgId] || {};
+        const upvotes = Object.values(votes).filter(v => v === 'upvote').length;
+        const downvotes = Object.values(votes).filter(v => v === 'downvote').length;
+        
+        const embed = message.embeds[0];
+        const resultsField = embed.fields.find(field => field.name === 'Results so far');
+        if (resultsField) {
+            resultsField.value = `<:g_checkmark:1205513702783189072>: ${upvotes}\n<:r_cross:1205513709963976784>: ${downvotes}`;
+        }
+        
+        await message.edit({ embeds: [embed] });
+        
         await interaction.reply({ 
-            content: `You voted ${type === 'upvote' ? '<:g_checkmark:1205513702783189072>' : '<:r_cross:1205513709963976784>'}!`, 
+            content: `You ${suggestionVotes[msgId][user.id] ? `voted ${type === 'upvote' ? '<:g_checkmark:1205513702783189072>' : '<:r_cross:1205513709963976784>'}` : 'removed your vote'}!`, 
             ephemeral: true 
         });
     } else if (type === 'viewvotes') {
