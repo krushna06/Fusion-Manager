@@ -1,13 +1,18 @@
 # Fusion-Manager
 
-A Discord bot for managing bug reports, suggestions, and moderation tasks.
+A comprehensive Discord bot for managing bug reports, suggestions, staff applications, trades, and moderation tasks.
 
 ## Features
 
-- Bug reporting system
-- Moderation commands (ban, kick, timeout)
-- User profiles with bug statistics
-- Media account tracking
+- Bug reporting system with status tracking
+- Suggestion system with voting and moderation
+- Staff application management
+- Trade system for in-game or server trades
+- Moderation tools (ban, kick, timeout, purge)
+- User profiles with activity statistics
+- Media account tracking and monitoring
+- Sniper system for monitoring specific keywords
+- Staff report system
 
 ## Setup
 
@@ -30,10 +35,23 @@ A Discord bot for managing bug reports, suggestions, and moderation tasks.
 - `/suggestion-decline <msg_id> <reason>` - Decline a suggestion with a reason
 - `/suggestion-list <type>` - List all suggestions with a specific status
 
+### Staff Applications
+- `/staff-application` - Set up staff application system
+- `/staff-application add-user <user>` - Add a user to the staff application whitelist
+- `/staff-application remove-user <user>` - Remove a user from the staff application whitelist
+- `/staff-application close <reason>` - Close the staff application system
+
+### Trade System
+- `/trade-system` - Set up the trade channel
+- `/trade-list` - List all active trades
+
 ### Moderation
 - `/ban <user> [reason]` - Ban a user from the server
 - `/kick <user> [reason]` - Kick a user from the server
 - `/timeout <user> <duration> [reason]` - Timeout a user for a specified duration
+- `/purge <amount>` - Delete multiple messages at once
+- `/sniper-add <keyword>` - Add a keyword to monitor in media posts
+- `/ssreport <user> <reason>` - Report a user for suspicious activity
 
 ### Utility
 - `/profile [user]` - View bug reporting and suggestion statistics for a user
