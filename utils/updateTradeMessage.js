@@ -57,8 +57,8 @@ export async function updateTradeMessage(message, trade) {
               type: 2,
               style: ButtonStyle.Primary,
               label: 'Counter Offer',
-              custom_id: 'counter_offer',
-              disabled: true
+              custom_id: `counter_offer_${trade.message_id}`,
+              disabled: isDisabled
             }
           ]
         }

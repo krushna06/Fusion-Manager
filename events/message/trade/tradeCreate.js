@@ -81,12 +81,13 @@ export async function handleTradeRequest(message) {
         new ButtonBuilder()
           .setCustomId(`accept_trade_${tradeId}`)
           .setLabel('Accept Trade')
-          .setStyle(ButtonStyle.Success),
+          .setStyle(ButtonStyle.Success)
+          .setEmoji('✅'),
         new ButtonBuilder()
-          .setCustomId('cancel_trade')
-          .setLabel('Cancel')
-          .setStyle(ButtonStyle.Danger)
-          .setEmoji('❌')
+          .setCustomId(`counter_offer_${tradeId}`)
+          .setLabel('Counter Offer')
+          .setStyle(ButtonStyle.Primary)
+          .setEmoji('🔄')
       );
     
     tradeEmbed.setFooter({ 

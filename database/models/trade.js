@@ -99,6 +99,14 @@ export async function getTradeByMessageId(messageId) {
   );
 }
 
+export async function getTradeById(id) {
+  const db = await dbPromise;
+  return await db.get(
+    'SELECT * FROM trades WHERE id = ?',
+    [id]
+  );
+}
+
 export async function getTradesByStatus(status) {
   const db = await dbPromise;
   
@@ -126,4 +134,34 @@ export async function getTradeChannel(guildId) {
   );
   
   return result ? result.trade_channel_id : null;
+}
+
+export async function addCounterOffer(tradeId, userId, counterOffer) {
+  const db = await dbPromise;
+  
+  const trade = await db.get('SELECT * FROM trades WHERE id = ?', [tradeId]);
+  if (!trade) {
+    throw new Error('Trade not found');
+  }
+  
+  await db.run(
+    `INSERT INTO counter_offers (trade_id, user_id, offer, status, created_at)
+     VALUES (?, ?, ?, 'pending', CURRENT_TIMESTAMP)
+     ON CONFLICT(trade_id, user_id) 
+     DO UPDATE SET offer = ?, status = 'pending', created_at = CURRENT_TIMESTAMP`,
+    [tradeId, userId, counterOffer, counterOffer]
+  );
+  
+  await db.run(
+    `UPDATE trades SET has_pending_offer = 1 WHERE id = ?`,
+    [tradeId]
+  );
+  
+  return {
+    tradeId,
+    userId,
+    offer: counterOffer,
+    status: 'pending',
+    createdAt: new Date().toISOString()
+  };
 }

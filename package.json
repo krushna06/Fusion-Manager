@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "migrate": "node --experimental-json-modules database/migrate.js"
   },
   "dependencies": {
     "discord.js": "^14.13.0",
