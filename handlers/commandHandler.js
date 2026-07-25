@@ -15,8 +15,11 @@ export async function loadCommands(client) {
     
     for (const file of commandFiles) {
       const command = await import(`../commands/${folder}/${file}`);
-      if (command.default && command.default.name) {
-        client.commands.set(command.default.name, command.default);
+      if (command.default) {
+        const commandName = command.default.name || command.default.data?.name;
+        if (commandName) {
+          client.commands.set(commandName, command.default);
+        }
       }
     }
   }
