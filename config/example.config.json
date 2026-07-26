@@ -1,46 +1,85 @@
 {
-    "TOKEN": "",
-    "YOUTUBE_API_KEY": "",
-    "linker": {
-        "guildId": "",
-        "donatorRoleId": "",
-        "boosterRoleId": "",
-        "logChannelId": "",
-        "statsUrl": "",
-        "mysql": {
-            "host": "",
-            "port": 3306,
-            "database": "",
-            "user": "",
-            "password": ""
-        },
-        "tablePrefix": "fd_",
-        "boosterGroup": "global-booster",
-        "dirtyPollSeconds": 20,
-        "sweepMinutes": 10,
-        "realms": [
-            {
-                "key": "global",
-                "label": "GLOBAL",
-                "emoji": "🌐",
-                "ladder": [
-                    {
-                        "group": "global-fusion",
-                        "display": "Fusion"
-                    }
-                ]
-            },
-            {
-                "key": "lifesteal",
-                "label": "LIFESTEAL",
-                "emoji": "❤️",
-                "ladder": [
-                    {"group": "ls-soul", "display": "Soul"},
-                    {"group": "ls-knight", "display": "Knight"},
-                    {"group": "ls-sentinel", "display": "Sentinel"}
-                ]
-            }
+  "TOKEN": "",
+  "YOUTUBE_API_KEY": "",
+  "linker": {
+    "guildId": "",
+    "donatorRoleId": "",
+    "boosterRoleId": "",
+    "logChannelId": "",
+    "statsUrl": "",
+    "mysql": {
+      "host": "",
+      "port": 3306,
+      "database": "",
+      "user": "",
+      "password": ""
+    },
+    "tablePrefix": "fd_",
+    "boosterGroup": "global-booster",
+    "dirtyPollSeconds": 20,
+    "sweepMinutes": 10,
+    "realms": [
+      {
+        "key": "global",
+        "label": "GLOBAL",
+        "emoji": "🌐",
+        "ladder": [
+          {
+            "group": "global-fusion",
+            "display": "Fusion"
+          }
         ]
-    }
+      },
+      {
+        "key": "lifesteal",
+        "label": "LIFESTEAL",
+        "emoji": "❤️",
+        "ladder": [
+          {
+            "group": "ls-soul",
+            "display": "Soul"
+          },
+          {
+            "group": "ls-knight",
+            "display": "Knight"
+          },
+          {
+            "group": "ls-sentinel",
+            "display": "Sentinel"
+          },
+          {
+            "display": "Master",
+            "group": "ls-master"
+          },
+          {
+            "display": "Mercenary",
+            "group": "ls-mercenary"
+          }
+        ]
+      },
+      {
+        "label": "PVP",
+        "key": "pvp",
+        "emoji": "⚔️",
+        "ladder": [
+          {
+            "display": "VIP",
+            "group": "pvp-vip"
+          },
+          {
+            "display": "VIP+",
+            "group": "pvp-vip+"
+          },
+          {
+            "display": "Elite",
+            "group": "pvp-elite"
+          },
+          {
+            "display": "MVP+",
+            "group": "pvp-mvp+"
+          }
+        ]
+      }
+    ]
+  }
 }
-  

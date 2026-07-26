@@ -68,7 +68,6 @@ async function init() {
     info('Starting bot initialization...');
     await initDatabase();
     
-    // Initialize linker database if configured
     if (config.linker && config.linker.mysql) {
       try {
         info('Initializing linker database...');
@@ -77,7 +76,6 @@ async function init() {
         success('Linker database initialized successfully');
       } catch (linkerErr) {
         error('Error initializing linker database', linkerErr);
-        // Continue without linker functionality
       }
     }
     
@@ -108,14 +106,13 @@ async function init() {
       throw loginErr;
     }
     
-    // Initialize reconciler after login
     if (config.linker && config.linker.mysql && config.linker.guildId) {
       try {
         info('Initializing reconciler...');
         client.reconciler = new Reconciler(client, config);
         client.config = config;
         
-        // Start periodic tasks
+        
         const linkerConfig = config.linker;
         const dirtyPollSeconds = linkerConfig.dirtyPollSeconds || 20;
         const sweepMinutes = linkerConfig.sweepMinutes || 10;
@@ -137,7 +134,6 @@ async function init() {
   }
 }
 
-// Handle shutdown gracefully
 const shutdown = async () => {
   try {
     await client.destroy();
