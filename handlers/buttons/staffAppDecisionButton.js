@@ -1,6 +1,8 @@
 import { updateStaffApplicationStatus, getStaffApplicationByChannel } from '../../database/mainDb.js';
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, AttachmentBuilder } from 'discord.js';
+import { generateFromMessages } from 'discord-html-transcripts';
 import roles from '../../config/roles.json' with { type: 'json' };
+import config from '../../config/config.json' with { type: 'json' };
 
 export async function handleStaffAppDecisionButton(interaction) {
   if (!interaction.member.roles.cache.has(roles.STAFF_APPLICATION_MANAGER_ROLE)) {
@@ -70,11 +72,67 @@ export async function handleStaffAppDecisionButton(interaction) {
     } else if (action === 'close') {
       await updateStaffApplicationStatus(channelId, 'closed');
       
-      await interaction.editReply({ content: 'This staff application channel will be closed in 5 seconds.' });
+      await interaction.editReply({ content: 'Generating transcript and closing application...' });
+      
+      const application = await getStaffApplicationByChannel(channelId);
+      
+      const messages = await interaction.channel.messages.fetch();
+      const transcriptBuffer = await generateFromMessages(messages, interaction.channel, {
+        returnType: 'buffer',
+        filename: `staff-app-${application?.minecraft_username || 'unknown'}.html`
+      });
+      
+      const transcriptAttachment = new AttachmentBuilder(transcriptBuffer, {
+        name: `staff-app-${application?.minecraft_username || 'unknown'}.html`
+      });
+      
+      const createdAt = application?.created_at ? new Date(application.created_at) : new Date();
+      const closedAt = new Date();
+      const daysDiff = Math.floor((closedAt - createdAt) / (1000 * 60 * 60 * 24));
+      
+      const formatDate = (date) => date.toLocaleString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      
+      let closeReason = 'Closed';
+      if (application?.status === 'accepted') {
+        closeReason = 'Accepted';
+      } else if (application?.status === 'rejected') {
+        closeReason = 'Denied';
+      }
+      
+      const embed = new EmbedBuilder()
+        .setTitle('Application Closed')
+        .setColor(0x5865F2)
+        .addFields(
+          { name: 'Topic', value: application?.minecraft_username || 'Unknown', inline: true },
+          { name: 'Created at', value: formatDate(createdAt), inline: true },
+          { name: 'Closed at', value: formatDate(closedAt), inline: true },
+          { name: '\u200b', value: `(after ${daysDiff} days)`, inline: true },
+          { name: 'Closed by', value: `<@${interaction.user.id}>`, inline: true },
+          { name: 'Closed because', value: closeReason, inline: true }
+        );
+      
+      if (config.STAFF_APPLICATION_LOGS_CHANNEL_ID) {
+        const logsChannel = await interaction.guild.channels.fetch(config.STAFF_APPLICATION_LOGS_CHANNEL_ID).catch(() => null);
+        if (logsChannel) {
+          await logsChannel.send({
+            embeds: [embed],
+            files: [transcriptAttachment]
+          });
+        }
+      }
+      
+      await interaction.editReply({ content: 'Staff application closed and logged.' });
       
       setTimeout(async () => {
         await interaction.channel.delete('Staff application closed by manager');
-      }, 5000);
+      }, 2000);
     }
   } catch (error) {
     console.error('Error handling staff application decision:', error);
