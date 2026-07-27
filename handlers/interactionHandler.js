@@ -1,10 +1,17 @@
 import { handleButtonInteraction } from './buttonHandler.js';
+import { handleModalSubmit } from './modalHandler.js';
 
 export async function handleInteraction(client, interaction) {
   if (interaction.isButton()) {
     await handleButtonInteraction(interaction);
     return;
   }
+  
+  if (interaction.isModalSubmit()) {
+    await handleModalSubmit(interaction);
+    return;
+  }
+  
   if (!interaction.isCommand()) return;
   
   const command = client.commands.get(interaction.commandName);

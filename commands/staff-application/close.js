@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-
+import { updateStaffApplicationStatus } from '../../database/mainDb.js';
 import roles from '../../config/roles.json' with { type: 'json' };
 
 export default {
@@ -16,6 +16,9 @@ export default {
       if (!channel.name.startsWith('staff-app-')) {
         return interaction.reply({ content: 'This command can only be used in staff application channels.', ephemeral: true });
       }
+      
+      await updateStaffApplicationStatus(channel.id, 'closed');
+      
       await interaction.reply({ content: 'This staff application channel will be closed in 5 seconds.', ephemeral: false });
       setTimeout(async () => {
         await channel.delete('Staff application closed by manager');

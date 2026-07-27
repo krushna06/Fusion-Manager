@@ -62,9 +62,9 @@ async function initDatabase() {
   await db.exec(`
     CREATE TABLE IF NOT EXISTS staff_applications (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      channel_id TEXT NOT NULL UNIQUE,
-      staff_id TEXT NOT NULL,
-      manager_id TEXT NOT NULL,
+      channel_id TEXT UNIQUE,
+      staff_id TEXT,
+      manager_id TEXT,
       created_at TIMESTAMP NOT NULL,
       additional_users TEXT
     )
@@ -108,6 +108,58 @@ async function initDatabase() {
   const pragma = await db.all(`PRAGMA table_info(staff_applications)`);
   if (!pragma.some(col => col.name === 'additional_users')) {
     await db.exec(`ALTER TABLE staff_applications ADD COLUMN additional_users TEXT`);
+  }
+  if (!pragma.some(col => col.name === 'minecraft_username')) {
+    await db.exec(`ALTER TABLE staff_applications ADD COLUMN minecraft_username TEXT`);
+  }
+  if (!pragma.some(col => col.name === 'responses')) {
+    await db.exec(`ALTER TABLE staff_applications ADD COLUMN responses TEXT`);
+  }
+  if (!pragma.some(col => col.name === 'status')) {
+    await db.exec(`ALTER TABLE staff_applications ADD COLUMN status TEXT DEFAULT 'pending'`);
+  }
+  if (!pragma.some(col => col.name === 'setup_message_id')) {
+    await db.exec(`ALTER TABLE staff_applications ADD COLUMN setup_message_id TEXT`);
+  }
+  if (!pragma.some(col => col.name === 'setup_channel_id')) {
+    await db.exec(`ALTER TABLE staff_applications ADD COLUMN setup_channel_id TEXT`);
+  }
+  if (!pragma.some(col => col.name === 'rejected_at')) {
+    await db.exec(`ALTER TABLE staff_applications ADD COLUMN rejected_at TIMESTAMP`);
+  }
+  
+  const managerIdCol = pragma.find(col => col.name === 'manager_id');
+  const channelIdCol = pragma.find(col => col.name === 'channel_id');
+  const staffIdCol = pragma.find(col => col.name === 'staff_id');
+  if ((managerIdCol && managerIdCol.notnull === 1) || 
+      (channelIdCol && channelIdCol.notnull === 1) || 
+      (staffIdCol && staffIdCol.notnull === 1)) {
+    await db.exec(`
+      CREATE TABLE staff_applications_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        channel_id TEXT UNIQUE,
+        staff_id TEXT,
+        manager_id TEXT,
+        created_at TIMESTAMP NOT NULL,
+        additional_users TEXT,
+        minecraft_username TEXT,
+        responses TEXT,
+        status TEXT DEFAULT 'pending',
+        setup_message_id TEXT,
+        setup_channel_id TEXT,
+        rejected_at TIMESTAMP
+      )
+    `);
+    
+    await db.exec(`
+      INSERT INTO staff_applications_new 
+      (id, channel_id, staff_id, manager_id, created_at, additional_users, minecraft_username, responses, status, setup_message_id, setup_channel_id, rejected_at)
+      SELECT id, channel_id, staff_id, manager_id, created_at, additional_users, minecraft_username, responses, status, setup_message_id, setup_channel_id, rejected_at
+      FROM staff_applications
+    `);
+    
+    await db.exec(`DROP TABLE staff_applications`);
+    await db.exec(`ALTER TABLE staff_applications_new RENAME TO staff_applications`);
   }
 
   success('Database initialized successfully');
@@ -271,6 +323,69 @@ async function removeAdditionalUserFromStaffApplication(channelId, userId) {
   return users;
 }
 
+async function createStaffApplication(channelId, userId, minecraftUsername, responses) {
+  const db = await dbPromise;
+  const result = await db.run(
+    `INSERT INTO staff_applications (channel_id, staff_id, manager_id, minecraft_username, responses, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+    [channelId, userId, null, minecraftUsername, JSON.stringify(responses), new Date().toISOString()]
+  );
+  return result.lastID;
+}
+
+async function getStaffApplicationByUser(userId) {
+  const db = await dbPromise;
+  return await db.get(
+    `SELECT * FROM staff_applications WHERE staff_id = ? ORDER BY created_at DESC LIMIT 1`,
+    [userId]
+  );
+}
+
+async function updateStaffApplicationStatus(channelId, status) {
+  const db = await dbPromise;
+  
+  if (status === 'rejected') {
+    await db.run(
+      `UPDATE staff_applications SET status = ?, rejected_at = ? WHERE channel_id = ?`,
+      [status, new Date().toISOString(), channelId]
+    );
+  } else {
+    await db.run(
+      `UPDATE staff_applications SET status = ? WHERE channel_id = ?`,
+      [status, channelId]
+    );
+  }
+}
+
+async function saveStaffAppSetup(messageId, channelId) {
+  const db = await dbPromise;
+  
+  const existing = await db.get(
+    `SELECT * FROM staff_applications WHERE setup_channel_id = ? AND (channel_id IS NULL OR channel_id = 'setup_placeholder')`,
+    [channelId]
+  );
+  
+  if (existing) {
+    await db.run(
+      `UPDATE staff_applications SET setup_message_id = ? WHERE id = ?`,
+      [messageId, existing.id]
+    );
+  } else {
+    const dummyChannelId = 'setup_' + Date.now();
+    await db.run(
+      `INSERT INTO staff_applications (setup_message_id, setup_channel_id, staff_id, manager_id, created_at, channel_id) VALUES (?, ?, NULL, NULL, ?, ?)`,
+      [messageId, channelId, new Date().toISOString(), dummyChannelId]
+    );
+  }
+}
+
+async function getStaffAppSetup(channelId) {
+  const db = await dbPromise;
+  return await db.get(
+    `SELECT * FROM staff_applications WHERE setup_channel_id = ? AND channel_id IS NULL`,
+    [channelId]
+  );
+}
+
 export {
   dbPromise,
   initDatabase,
@@ -286,5 +401,10 @@ export {
   addStaffApplication,
   getStaffApplicationByChannel,
   addAdditionalUserToStaffApplication,
-  removeAdditionalUserFromStaffApplication
+  removeAdditionalUserFromStaffApplication,
+  createStaffApplication,
+  getStaffApplicationByUser,
+  updateStaffApplicationStatus,
+  saveStaffAppSetup,
+  getStaffAppSetup
 };

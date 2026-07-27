@@ -1,5 +1,7 @@
 import { handleSuggestionButton } from './buttons/suggestionButton.js';
 import { handleTradeButton } from './buttons/tradeButton.js';
+import { handleStaffApplicationButton } from './buttons/staffApplicationButton.js';
+import { handleStaffAppDecisionButton } from './buttons/staffAppDecisionButton.js';
 
 export async function handleButtonInteraction(interaction) {
   if (!interaction.isButton()) {
@@ -19,6 +21,18 @@ export async function handleButtonInteraction(interaction) {
         interaction.customId.startsWith('reject_counter_')) {
       console.log('Routing to trade button handler');
       return await handleTradeButton(interaction);
+    }
+    
+    if (interaction.customId === 'staff_apply_button') {
+      return await handleStaffApplicationButton(interaction);
+    }
+    
+    if (interaction.customId.startsWith('staff_accept_') || interaction.customId.startsWith('staff_reject_')) {
+      return await handleStaffAppDecisionButton(interaction);
+    }
+    
+    if (interaction.customId.startsWith('staff_close_')) {
+      return await handleStaffAppDecisionButton(interaction);
     }
     
     console.log('No handler found for button:', interaction.customId);
