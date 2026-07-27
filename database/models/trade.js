@@ -1,4 +1,4 @@
-import { dbPromise } from '../connect.js';
+import { dbPromise } from '../mainDb.js';
 
 export async function addTrade(messageId, channelId, userId, lookingFor, offering) {
   const db = await dbPromise;

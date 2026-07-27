@@ -1,6 +1,6 @@
 # Fusion-Manager
 
-A comprehensive Discord bot for managing bug reports, suggestions, staff applications, trades, and moderation tasks.
+A comprehensive Discord bot for managing bug reports, suggestions, staff applications, trades, moderation tasks, and Minecraft rank synchronization.
 
 ## Features
 
@@ -13,6 +13,7 @@ A comprehensive Discord bot for managing bug reports, suggestions, staff applica
 - Media account tracking and monitoring
 - Sniper system for monitoring specific keywords
 - Staff report system
+- Minecraft-Discord rank synchronization with automatic role syncing based on in-game ranks
 
 ## Setup
 
@@ -56,6 +57,19 @@ A comprehensive Discord bot for managing bug reports, suggestions, staff applica
 ### Utility
 - `/profile [user]` - View bug reporting and suggestion statistics for a user
 - `/syncmedia` - List YouTube and TikTok accounts of users with the media role & check for a specific keyword in title.
+
+### Minecraft Rank Synchronization
+- `/link <code>` - Link your Minecraft account to Discord using a code from in-game
+- `/unlink` - Unlink your Minecraft account from Discord
+- `/info [member|username]` - Show player information including ranks and link status
+- `/admin-sync` - Run a full sync sweep now
+- `/admin-lookup [member|username]` - Review a player's link, ranks and history
+- `/admin-unlink [member|username]` - Force unlink an account
+- `/admin-forcelink <member> <username>` - Manually link a Discord member to a Minecraft account
+- `/admin-resync [member|username]` - Re-run the sync for one player
+- `/admin-grant <member>` - Give Donator manually and exempt from auto-removal
+- `/admin-ungrant <member> [remove_role]` - Remove a manual Donator grant
+- `/admin-booster <grant|revoke> [member|username]` - Manually grant or revoke in-game booster rank
 
 ## License
 

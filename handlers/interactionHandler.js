@@ -9,17 +9,14 @@ export async function handleInteraction(client, interaction) {
   
   const command = client.commands.get(interaction.commandName);
   
-  if (!command) {
-    console.error(`Command not found: ${interaction.commandName}`);
-    return;
-  }
+  if (!command) return;
   
   try {
     await command.execute(interaction);
   } catch (error) {
     console.error(`Error executing command ${interaction.commandName}:`, error);
     const errorMessage = { 
-      content: `There was an error executing this command: ${error.message}`, 
+      content: 'There was an error executing this command!', 
       ephemeral: true 
     };
     

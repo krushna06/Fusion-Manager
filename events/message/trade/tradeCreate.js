@@ -1,7 +1,7 @@
 import { addTrade } from '../../../database/models/trade.js';
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { success } from '../../../utils/logger.js';
-import { dbPromise } from '../../../database/connect.js';
+import { dbPromise } from '../../../database/mainDb.js';
 
 export async function handleTradeRequest(message) {
   try {

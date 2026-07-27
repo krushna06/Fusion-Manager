@@ -1,5 +1,5 @@
 import { Routes, REST } from 'discord.js';
-import { initDatabase } from '../../database/connect.js';
+import { initDatabase } from '../../database/mainDb.js';
 import config from '../../config/config.json' with { type: 'json' };
 import fs from 'fs';
 import path from 'path';
@@ -8,7 +8,6 @@ import { load, success, info, error } from '../../utils/logger.js';
 export default {
   once: true,
   async execute(client) {
-    // no need to log here as i already logged in index.js
     try {
       info('Initializing database...');
       await initDatabase();

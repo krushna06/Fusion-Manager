@@ -1,4 +1,4 @@
-import { dbPromise } from '../connect.js';
+import { dbPromise } from '../mainDb.js';
 
 /**
  * @param {string} channelId

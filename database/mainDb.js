@@ -105,46 +105,6 @@ async function initDatabase() {
     )
   `);
 
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS linker_links (
-      uuid TEXT NOT NULL PRIMARY KEY,
-      username TEXT NOT NULL,
-      discord_id TEXT NOT NULL UNIQUE,
-      linked_at INTEGER NOT NULL
-    )
-  `);
-
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS linker_link_codes (
-      uuid TEXT NOT NULL PRIMARY KEY,
-      username TEXT NOT NULL,
-      code_hash TEXT NOT NULL UNIQUE,
-      created_at INTEGER NOT NULL,
-      expires_at INTEGER NOT NULL
-    )
-  `);
-
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS linker_audit (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      at INTEGER NOT NULL,
-      side TEXT NOT NULL,
-      action TEXT NOT NULL,
-      uuid TEXT,
-      username TEXT,
-      discord_id TEXT,
-      detail TEXT
-    )
-  `);
-
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS linker_donator_grants (
-      discord_id TEXT NOT NULL PRIMARY KEY,
-      granted_by TEXT,
-      granted_at INTEGER NOT NULL
-    )
-  `);
-
   const pragma = await db.all(`PRAGMA table_info(staff_applications)`);
   if (!pragma.some(col => col.name === 'additional_users')) {
     await db.exec(`ALTER TABLE staff_applications ADD COLUMN additional_users TEXT`);

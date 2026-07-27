@@ -3,7 +3,7 @@ import path from 'path';
 import { Collection } from 'discord.js';
 import { load, debug, error } from '../utils/logger.js';
 
-export async function loadCommands(client) {
+export async function loadCommands(client, linkerDb = null, linkerReconciler = null) {
   client.commands = new Collection();
   const commandFolders = fs.readdirSync(path.resolve('./commands'));
   
@@ -15,10 +15,15 @@ export async function loadCommands(client) {
     
     for (const file of commandFiles) {
       const command = await import(`../commands/${folder}/${file}`);
-      if (command.default) {
-        const commandName = command.default.name || command.default.data?.name;
-        if (commandName) {
-          client.commands.set(commandName, command.default);
+      if (command.default && command.default.name) {
+        client.commands.set(command.default.name, command.default);
+        
+        if (folder === 'minecraft' && linkerDb && linkerReconciler) {
+          if (command.setLinkerDependencies) {
+            command.setLinkerDependencies(linkerDb, linkerReconciler);
+          } else if (command.default && command.default.setLinkerDependencies) {
+            command.default.setLinkerDependencies(linkerDb, linkerReconciler);
+          }
         }
       }
     }
