@@ -1,5 +1,5 @@
-import { ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 import { getStaffApplicationByUser } from '../../database/mainDb.js';
+import { handleStaffApplicationStep1 } from '../modals/staffApplicationStep1.js';
 
 let linkerDb = null;
 
@@ -40,60 +40,5 @@ export async function handleStaffApplicationButton(interaction) {
     }
   }
 
-  const linkData = await linkerDb.getLinkByDiscord(interaction.user.id);
-  if (!linkData) {
-    return interaction.reply({ 
-      content: 'You need to link your Minecraft account to Discord before applying for staff. Use /link in game first.', 
-      flags: 64 
-    });
-  }
-
-  const modal = new ModalBuilder()
-    .setCustomId('staff_application_modal')
-    .setTitle('Staff Application');
-
-  const minecraftUsernameInput = new TextInputBuilder()
-    .setCustomId('minecraft_username')
-    .setLabel('Minecraft Username')
-    .setValue(linkData.username)
-    .setStyle(TextInputStyle.Short)
-    .setRequired(true);
-
-  const whyApplyInput = new TextInputBuilder()
-    .setCustomId('why_apply')
-    .setLabel('Why do you want to apply for staff?')
-    .setStyle(TextInputStyle.Paragraph)
-    .setRequired(true)
-    .setMaxLength(1000);
-
-  const experienceInput = new TextInputBuilder()
-    .setCustomId('experience')
-    .setLabel('What experience do you have with moderating?')
-    .setStyle(TextInputStyle.Paragraph)
-    .setRequired(true)
-    .setMaxLength(1000);
-
-  const availabilityInput = new TextInputBuilder()
-    .setCustomId('availability')
-    .setLabel('How many hours per week can you dedicate?')
-    .setStyle(TextInputStyle.Paragraph)
-    .setRequired(true)
-    .setMaxLength(500);
-
-  const additionalInfoInput = new TextInputBuilder()
-    .setCustomId('additional_info')
-    .setLabel('Additional information')
-    .setStyle(TextInputStyle.Paragraph)
-    .setRequired(false)
-    .setMaxLength(1000);
-
-  const firstRow = new ActionRowBuilder().addComponents(minecraftUsernameInput);
-  const secondRow = new ActionRowBuilder().addComponents(whyApplyInput);
-  const thirdRow = new ActionRowBuilder().addComponents(experienceInput);
-  const fourthRow = new ActionRowBuilder().addComponents(availabilityInput);
-  const fifthRow = new ActionRowBuilder().addComponents(additionalInfoInput);
-
-  modal.addComponents(firstRow, secondRow, thirdRow, fourthRow, fifthRow);
-
-  await interaction.showModal(modal);
+  await handleStaffApplicationStep1(interaction, linkerDb);
 }

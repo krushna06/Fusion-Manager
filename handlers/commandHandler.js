@@ -32,6 +32,9 @@ export async function loadCommands(client, linkerDb = null, linkerReconciler = n
   if (linkerDb) {
     const { setLinkerDependencies: setStaffAppButtonDeps } = await import('./buttons/staffApplicationButton.js');
     setStaffAppButtonDeps(linkerDb);
+    
+    const { setLinkerDependencies: setStaffAppStep1Deps } = await import('./modals/staffApplicationStep1.js');
+    setStaffAppStep1Deps(linkerDb);
   }
   
   load(`Successfully loaded`, 'commands:', client.commands.size);

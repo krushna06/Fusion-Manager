@@ -2,6 +2,7 @@ import { handleSuggestionButton } from './buttons/suggestionButton.js';
 import { handleTradeButton } from './buttons/tradeButton.js';
 import { handleStaffApplicationButton } from './buttons/staffApplicationButton.js';
 import { handleStaffAppDecisionButton } from './buttons/staffAppDecisionButton.js';
+import { handleStaffAppStepButton } from './buttons/staffAppStepButtons.js';
 
 export async function handleButtonInteraction(interaction) {
   if (!interaction.isButton()) {
@@ -33,6 +34,10 @@ export async function handleButtonInteraction(interaction) {
     
     if (interaction.customId.startsWith('staff_close_')) {
       return await handleStaffAppDecisionButton(interaction);
+    }
+    
+    if (interaction.customId.startsWith('staff_app_step')) {
+      return await handleStaffAppStepButton(interaction);
     }
     
     console.log('No handler found for button:', interaction.customId);
