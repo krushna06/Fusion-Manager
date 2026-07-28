@@ -5,7 +5,8 @@ import { handleStaffApplicationStep3 } from './modals/staffApplicationStep3.js';
 import { handleStaffApplicationStep4 } from './modals/staffApplicationStep4.js';
 import { handleStaffApplicationStep5 } from './modals/staffApplicationStep5.js';
 import { handleStaffApplicationStep6 } from './modals/staffApplicationStep6.js';
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, PermissionsBitField } from 'discord.js';
+import config from '../config.js';
 
 const applicationData = new Map();
 
@@ -17,6 +18,46 @@ export async function handleModalSubmit(interaction) {
   }
   
   try {
+    if (interaction.customId === 'staff_onboarding_modal') {
+      const preferredName = interaction.fields.getTextInputValue('preferred_name');
+      const minecraftIgn = interaction.fields.getTextInputValue('minecraft_ign');
+      const timezone = interaction.fields.getTextInputValue('timezone');
+      
+      const embed = new EmbedBuilder()
+        .setTitle('New Staff Onboarding Submission')
+        .setColor(0x3498DB)
+        .addFields(
+          { name: 'User', value: `${interaction.user.tag} (${interaction.user.id})`, inline: true },
+          { name: 'Preferred Name', value: preferredName, inline: true },
+          { name: 'Minecraft IGN', value: minecraftIgn, inline: true },
+          { name: 'Timezone', value: timezone, inline: true }
+        )
+        .setTimestamp();
+      
+      const acceptButton = new ButtonBuilder()
+        .setCustomId(`staff_onboarding_accept_${interaction.user.id}`)
+        .setLabel('Accept')
+        .setStyle(ButtonStyle.Success);
+      
+      const denyButton = new ButtonBuilder()
+        .setCustomId(`staff_onboarding_deny_${interaction.user.id}`)
+        .setLabel('Deny')
+        .setStyle(ButtonStyle.Danger);
+      
+      const row = new ActionRowBuilder().addComponents(acceptButton, denyButton);
+      
+      const logChannel = await interaction.client.channels.fetch(config.STAFF_DETAILS_CHANNEL_ID).catch(() => null);
+      if (logChannel) {
+        await logChannel.send({ embeds: [embed], components: [row] });
+      }
+      
+      await interaction.reply({ 
+        content: '✅ Thank you for submitting your onboarding information! Management will review your details and set you up with the right role shortly.', 
+        flags: 64 
+      });
+      return;
+    }
+    
     if (interaction.customId === 'staff_application_modal') {
       return await handleStaffApplicationModal(interaction);
     }

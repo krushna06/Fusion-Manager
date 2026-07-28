@@ -3,6 +3,8 @@ import { handleTradeButton } from './buttons/tradeButton.js';
 import { handleStaffApplicationButton } from './buttons/staffApplicationButton.js';
 import { handleStaffAppDecisionButton } from './buttons/staffAppDecisionButton.js';
 import { handleStaffAppStepButton } from './buttons/staffAppStepButtons.js';
+import { PermissionsBitField } from 'discord.js';
+import config from '../config.js';
 
 export async function handleButtonInteraction(interaction) {
   if (!interaction.isButton()) {
@@ -38,6 +40,96 @@ export async function handleButtonInteraction(interaction) {
     
     if (interaction.customId.startsWith('staff_app_step')) {
       return await handleStaffAppStepButton(interaction);
+    }
+    
+    if (interaction.customId.startsWith('staff_onboarding_')) {
+      await interaction.deferUpdate();
+      
+      if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+        return interaction.editReply({ 
+          content: 'Only administrators can use these buttons.' 
+        });
+      }
+      
+      const parts = interaction.customId.split('_');
+      const action = parts[2];
+      const targetUserId = parts[3];
+      
+      if (action === 'accept') {
+        try {
+          const guild = await interaction.client.guilds.fetch(config.STAFF_GUILD_ID);
+          const member = await guild.members.fetch(targetUserId).catch(() => null);
+          
+          if (!member) {
+            return interaction.editReply({ 
+              content: 'User not found in the staff server.' 
+            });
+          }
+          
+          const staffRole = await guild.roles.fetch(config.STAFF_ROLE_ID).catch(() => null);
+          if (!staffRole) {
+            return interaction.editReply({ 
+              content: 'Staff role not found. Please check the config.' 
+            });
+          }
+          
+          await member.roles.add(staffRole);
+          
+          await interaction.editReply({
+            content: '✅ Accepted',
+            components: []
+          });
+          
+          await interaction.followUp({
+            content: `Staff role has been assigned to ${member.user.tag}.`,
+            flags: 64
+          });
+          
+          try {
+            await member.send({
+              content: '🎉 Your staff onboarding has been accepted! Welcome to the Fusion Network staff team. You now have access to the staff channels.'
+            });
+          } catch (dmError) {
+            console.error('Failed to send DM to user:', dmError);
+          }
+        } catch (error) {
+          console.error('Error accepting onboarding:', error);
+          await interaction.editReply({ 
+            content: 'An error occurred while accepting the onboarding.' 
+          });
+        }
+      } else if (action === 'deny') {
+        try {
+          const guild = await interaction.client.guilds.fetch(config.STAFF_GUILD_ID);
+          const member = await guild.members.fetch(targetUserId).catch(() => null);
+          
+          await interaction.editReply({
+            content: '❌ Denied',
+            components: []
+          });
+          
+          await interaction.followUp({
+            content: `Denied by ${interaction.user.tag}.`,
+            flags: 64
+          });
+          
+          if (member) {
+            try {
+              await member.send({
+                content: '❌ Your staff onboarding has been denied. If you believe this is a mistake, please contact management.'
+              });
+            } catch (dmError) {
+              console.error('Failed to send DM to user:', dmError);
+            }
+          }
+        } catch (error) {
+          console.error('Error denying onboarding:', error);
+          await interaction.editReply({ 
+            content: 'An error occurred while denying the onboarding.' 
+          });
+        }
+      }
+      return;
     }
     
     console.log('No handler found for button:', interaction.customId);

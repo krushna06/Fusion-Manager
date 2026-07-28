@@ -3,6 +3,10 @@
   "YOUTUBE_API_KEY": "",
   "STAFF_APPLICATION_CATEGORY_ID": "",
   "STAFF_APPLICATION_LOGS_CHANNEL_ID": "",
+  "STAFF_GUILD_ID": "",
+  "PLAYER_REPORTS_CHANNEL_ID": "",
+  "STAFF_DETAILS_CHANNEL_ID": "",
+  "STAFF_ROLE_ID": "",
   "linker": {
     "guildId": "",
     "donatorRoleId": "",

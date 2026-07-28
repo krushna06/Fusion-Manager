@@ -1,3 +1,4 @@
+import config from '../../config/config.json' with { type: 'json' };
 let reconciler;
 
 export function setLinkerReconciler(linkerReconciler) {
@@ -9,8 +10,8 @@ export default {
   async execute(client, member) {
     if (!reconciler) return;
     
-    const config = reconciler.config;
-    if (member.guild.id !== config.guildId) return;
+    const linkerConfig = reconciler.config;
+    if (member.guild.id !== linkerConfig.guildId) return;
     
     try {
       await reconciler.reconcilePair(null, member.id);
