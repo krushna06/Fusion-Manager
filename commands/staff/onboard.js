@@ -7,9 +7,18 @@ export default {
     .setName('onboard')
     .setDescription('Start the staff onboarding process'),
   async execute(interaction) {
-    if (interaction.guild.id !== config.STAFF_GUILD_ID) {
+    const guild = await interaction.client.guilds.fetch(config.STAFF_GUILD_ID).catch(() => null);
+    if (!guild) {
       return interaction.reply({ 
-        content: 'This command can only be used in the staff server.', 
+        content: 'Staff server not found. Please contact an administrator.', 
+        flags: 64 
+      });
+    }
+    
+    const member = await guild.members.fetch(interaction.user.id).catch(() => null);
+    if (!member) {
+      return interaction.reply({ 
+        content: 'You must be a member of the staff server to use this command.', 
         flags: 64 
       });
     }

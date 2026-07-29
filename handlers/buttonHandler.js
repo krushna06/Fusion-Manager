@@ -5,6 +5,7 @@ import { handleStaffAppDecisionButton } from './buttons/staffAppDecisionButton.j
 import { handleStaffAppStepButton } from './buttons/staffAppStepButtons.js';
 import { PermissionsBitField } from 'discord.js';
 import config from '../config.js';
+import roles from '../config/roles.json' with { type: 'json' };
 
 export async function handleButtonInteraction(interaction) {
   if (!interaction.isButton()) {
@@ -66,14 +67,38 @@ export async function handleButtonInteraction(interaction) {
             });
           }
           
-          const staffRole = await guild.roles.fetch(config.STAFF_ROLE_ID).catch(() => null);
-          if (!staffRole) {
-            return interaction.editReply({ 
-              content: 'Staff role not found. Please check the config.' 
-            });
+          const botMember = await guild.members.fetch(interaction.client.user.id);
+          const staffRoleIds = roles.STAFF_ROLE;
+          const staffMemberRole = await guild.roles.fetch(roles.STAFF_MEMBER_ROLE).catch(() => null);
+          
+          if (staffRoleIds && Array.isArray(staffRoleIds)) {
+            for (const roleId of staffRoleIds) {
+              if (roleId) {
+                const role = await guild.roles.fetch(roleId).catch(() => null);
+                if (role) {
+                  if (role.position >= botMember.roles.highest.position) {
+                    console.error(`Cannot add role ${role.name}: Bot's highest role is not above this role`);
+                    continue;
+                  }
+                  await member.roles.add(role);
+                }
+              }
+            }
           }
           
-          await member.roles.add(staffRole);
+          if (staffMemberRole) {
+            if (staffMemberRole.position >= botMember.roles.highest.position) {
+              return interaction.editReply({ 
+                content: `❌ Cannot assign Staff Member role: Bot's role must be higher in the role hierarchy. Please move the bot's role above "${staffMemberRole.name}" in server settings.` 
+              });
+            }
+            await member.roles.add(staffMemberRole);
+          }
+          
+          const onboardingRole = await guild.roles.fetch(roles.ONBOARDING_ROLE).catch(() => null);
+          if (onboardingRole && member.roles.cache.has(onboardingRole.id)) {
+            await member.roles.remove(onboardingRole);
+          }
           
           await interaction.editReply({
             content: '✅ Accepted',
@@ -103,16 +128,6 @@ export async function handleButtonInteraction(interaction) {
           const guild = await interaction.client.guilds.fetch(config.STAFF_GUILD_ID);
           const member = await guild.members.fetch(targetUserId).catch(() => null);
           
-          await interaction.editReply({
-            content: '❌ Denied',
-            components: []
-          });
-          
-          await interaction.followUp({
-            content: `Denied by ${interaction.user.tag}.`,
-            flags: 64
-          });
-          
           if (member) {
             try {
               await member.send({
@@ -121,7 +136,19 @@ export async function handleButtonInteraction(interaction) {
             } catch (dmError) {
               console.error('Failed to send DM to user:', dmError);
             }
+            
+            await member.kick('Staff onboarding denied');
           }
+          
+          await interaction.editReply({
+            content: '❌ Denied',
+            components: []
+          });
+          
+          await interaction.followUp({
+            content: `Denied by ${interaction.user.tag}. User has been kicked from the server.`,
+            flags: 64
+          });
         } catch (error) {
           console.error('Error denying onboarding:', error);
           await interaction.editReply({ 
