@@ -18,6 +18,24 @@
     "boosterGroup": "global-booster",
     "dirtyPollSeconds": 20,
     "sweepMinutes": 10
+  },
+  "plan": {
+    "mysql": {
+      "host": "standard.fusionpanel.fun",
+      "port": 3306,
+      "database": "s17_plan",
+      "user": "",
+      "password": ""
+    }
+  },
+  "litebans": {
+    "mysql": {
+      "host": "standard.fusionpanel.fun",
+      "port": 3306,
+      "database": "s17_litebans",
+      "user": "",
+      "password": ""
+    }
   }
 }
   
