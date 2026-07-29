@@ -1,0 +1,12 @@
+{
+  "mainServer": {
+    "guildId": "",
+    "staffApplicationCategoryId": "",
+    "staffApplicationLogsChannelId": ""
+  },
+  "staffServer": {
+    "guildId": "",
+    "playerReportsChannelId": "",
+    "staffDetailsChannelId": ""
+  }
+}

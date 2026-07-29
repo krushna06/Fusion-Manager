@@ -5,7 +5,6 @@ import { handleStaffAppDecisionButton } from './buttons/staffAppDecisionButton.j
 import { handleStaffAppStepButton } from './buttons/staffAppStepButtons.js';
 import { PermissionsBitField } from 'discord.js';
 import config from '../config.js';
-import roles from '../config/roles.json' with { type: 'json' };
 
 export async function handleButtonInteraction(interaction) {
   if (!interaction.isButton()) {
@@ -58,7 +57,7 @@ export async function handleButtonInteraction(interaction) {
       
       if (action === 'accept') {
         try {
-          const guild = await interaction.client.guilds.fetch(config.STAFF_GUILD_ID);
+          const guild = await interaction.client.guilds.fetch(config.channels.staffServer.guildId);
           const member = await guild.members.fetch(targetUserId).catch(() => null);
           
           if (!member) {
@@ -68,8 +67,8 @@ export async function handleButtonInteraction(interaction) {
           }
           
           const botMember = await guild.members.fetch(interaction.client.user.id);
-          const staffRoleIds = roles.STAFF_ROLE;
-          const staffMemberRole = await guild.roles.fetch(roles.STAFF_MEMBER_ROLE).catch(() => null);
+          const staffRoleIds = config.roles.mainServer.staffRole;
+          const staffMemberRole = await guild.roles.fetch(config.roles.staffServer.staffMemberRole).catch(() => null);
           
           if (staffRoleIds && Array.isArray(staffRoleIds)) {
             for (const roleId of staffRoleIds) {
@@ -95,7 +94,7 @@ export async function handleButtonInteraction(interaction) {
             await member.roles.add(staffMemberRole);
           }
           
-          const onboardingRole = await guild.roles.fetch(roles.ONBOARDING_ROLE).catch(() => null);
+          const onboardingRole = await guild.roles.fetch(config.roles.staffServer.onboardingRole).catch(() => null);
           if (onboardingRole && member.roles.cache.has(onboardingRole.id)) {
             await member.roles.remove(onboardingRole);
           }
@@ -125,7 +124,7 @@ export async function handleButtonInteraction(interaction) {
         }
       } else if (action === 'deny') {
         try {
-          const guild = await interaction.client.guilds.fetch(config.STAFF_GUILD_ID);
+          const guild = await interaction.client.guilds.fetch(config.channels.staffServer.guildId);
           const member = await guild.members.fetch(targetUserId).catch(() => null);
           
           if (member) {

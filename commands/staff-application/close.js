@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { updateStaffApplicationStatus } from '../../database/mainDb.js';
-import roles from '../../config/roles.json' with { type: 'json' };
+import config from '../../config.js';
 
 export default {
   name: 'staff-close',
@@ -9,7 +9,7 @@ export default {
     .setDescription('Close this staff application channel'),
   async execute(interaction) {
     try {
-      if (!interaction.member.roles.cache.has(roles.STAFF_APPLICATION_MANAGER_ROLE)) {
+      if (!interaction.member.roles.cache.has(config.roles.mainServer.staffManagerRole)) {
         return interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
       }
       const channel = interaction.channel;

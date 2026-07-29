@@ -46,7 +46,7 @@ export async function handleModalSubmit(interaction) {
       
       const row = new ActionRowBuilder().addComponents(acceptButton, denyButton);
       
-      const logChannel = await interaction.client.channels.fetch(config.STAFF_DETAILS_CHANNEL_ID).catch(() => null);
+      const logChannel = await interaction.client.channels.fetch(config.channels.staffServer.staffDetailsChannelId).catch(() => null);
       if (logChannel) {
         await logChannel.send({ embeds: [embed], components: [row] });
       }

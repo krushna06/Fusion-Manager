@@ -1,11 +1,10 @@
 import { updateStaffApplicationStatus, getStaffApplicationByChannel } from '../../database/mainDb.js';
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, AttachmentBuilder } from 'discord.js';
 import { generateFromMessages } from 'discord-html-transcripts';
-import roles from '../../config/roles.json' with { type: 'json' };
-import config from '../../config/config.json' with { type: 'json' };
+import config from '../../config.js';
 
 export async function handleStaffAppDecisionButton(interaction) {
-  if (!interaction.member.roles.cache.has(roles.STAFF_APPLICATION_MANAGER_ROLE)) {
+  if (!interaction.member.roles.cache.has(config.roles.mainServer.staffManagerRole)) {
     return interaction.reply({ 
       content: 'You do not have permission to use this button.', 
       flags: 64 
@@ -25,8 +24,17 @@ export async function handleStaffAppDecisionButton(interaction) {
       const application = await getStaffApplicationByChannel(channelId);
       if (application && application.staff_id) {
         const member = await interaction.guild.members.fetch(application.staff_id).catch(() => null);
-        if (member && roles.TRIAL_STAFF_ROLE) {
-          await member.roles.add(roles.TRIAL_STAFF_ROLE).catch(console.error);
+        if (member && config.roles.mainServer.trialStaffRole) {
+          await member.roles.add(config.roles.mainServer.trialStaffRole).catch(console.error);
+        }
+        
+        // Give user permission to view the channel
+        const channel = await interaction.guild.channels.fetch(channelId).catch(() => null);
+        if (channel) {
+          await channel.permissionOverwrites.edit(application.staff_id, {
+            ViewChannel: true,
+            SendMessages: true
+          }).catch(console.error);
         }
       }
       
@@ -118,8 +126,8 @@ export async function handleStaffAppDecisionButton(interaction) {
           { name: 'Closed because', value: closeReason, inline: true }
         );
       
-      if (config.STAFF_APPLICATION_LOGS_CHANNEL_ID) {
-        const logsChannel = await interaction.guild.channels.fetch(config.STAFF_APPLICATION_LOGS_CHANNEL_ID).catch(() => null);
+      if (config.channels.mainServer.staffApplicationLogsChannelId) {
+        const logsChannel = await interaction.guild.channels.fetch(config.channels.mainServer.staffApplicationLogsChannelId).catch(() => null);
         if (logsChannel) {
           await logsChannel.send({
             embeds: [embed],

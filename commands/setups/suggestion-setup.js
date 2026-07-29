@@ -1,6 +1,6 @@
 import { PermissionsBitField, ChannelType, SlashCommandBuilder } from 'discord.js';
 import { setSuggestionChannel } from '../../database/models/guild.js';
-import roles from '../../config/roles.json' with { type: 'json' };
+import config from '../../config.js';
 import { success, error, info } from '../../utils/logger.js';
 
 export default {
@@ -16,7 +16,7 @@ export default {
     ),
   async execute(interaction) {
     const hasPermission = interaction.member.permissions.has(PermissionsBitField.Flags.ManageChannels) || 
-                          (roles.MANAGER_ROLE && interaction.member.roles.cache.has(roles.MANAGER_ROLE));
+                          (config.roles.mainServer.staffManagerRole && interaction.member.roles.cache.has(config.roles.mainServer.staffManagerRole));
     
     if (!hasPermission) {
       return interaction.reply({ 

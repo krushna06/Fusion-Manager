@@ -1,9 +1,14 @@
 {
-    "MEDIA_ROLE": "",
-    "MANAGER_ROLE": "",
-    "STAFF_APPLICATION_MANAGER_ROLE": "",
-    "STAFF_ROLE": [""],
-    "TRIAL_STAFF_ROLE": "",
-    "ONBOARDING_ROLE": "",
-    "STAFF_MEMBER_ROLE": ""
+  "mainServer": {
+    "guildId": "",
+    "mediaRole": "",
+    "staffManagerRole": "",
+    "staffRole": [""],
+    "trialStaffRole": ""
+  },
+  "staffServer": {
+    "guildId": "",
+    "onboardingRole": "",
+    "staffMemberRole": ""
+  }
 }

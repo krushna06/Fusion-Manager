@@ -41,7 +41,7 @@ export default {
         .setDescription('Proof link (YouTube, Imgur, postimages.org, or postimg.cc)')
         .setRequired(true)),
   async execute(interaction) {
-    const guild = await interaction.client.guilds.fetch(config.STAFF_GUILD_ID).catch(() => null);
+    const guild = await interaction.client.guilds.fetch(config.channels.staffServer.guildId).catch(() => null);
     if (!guild) {
       return interaction.reply({ 
         content: 'Staff server not found. Please contact an administrator.', 
@@ -86,7 +86,7 @@ export default {
       .setFooter({ text: `Report ID: ${interaction.id}` });
     
     try {
-      const reportChannel = await interaction.client.channels.fetch(config.PLAYER_REPORTS_CHANNEL_ID).catch(() => null);
+      const reportChannel = await interaction.client.channels.fetch(config.channels.staffServer.playerReportsChannelId).catch(() => null);
       if (!reportChannel) {
         return interaction.reply({ 
           content: 'Error: Player reports channel not found. Please contact an administrator.', 

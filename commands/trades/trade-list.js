@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { getTradesByStatus } from '../../database/models/trade.js';
-import roles from '../../config/roles.json' with { type: 'json' };
+import config from '../../config.js';
 
 export default {
   name: 'trade-list',
@@ -9,7 +9,7 @@ export default {
     .setDescription('List all pending trade requests'),
 
   async execute(interaction) {
-    const hasPermission = (roles.MANAGER_ROLE && interaction.member.roles.cache.has(roles.MANAGER_ROLE));
+    const hasPermission = (config.roles.mainServer.staffManagerRole && interaction.member.roles.cache.has(config.roles.mainServer.staffManagerRole));
     
     if (!hasPermission) {
       return interaction.reply({ 

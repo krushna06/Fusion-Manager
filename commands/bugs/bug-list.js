@@ -1,7 +1,7 @@
 import { PermissionsBitField, SlashCommandBuilder } from 'discord.js';
 import { getBugReportsByStatus } from '../../database/models/bug.js';
 import { getBugReportChannel } from '../../database/models/guild.js';
-import roles from '../../config/roles.json' with { type: 'json' };
+import config from '../../config.js';
 
 export default {
   name: 'bug-list',
@@ -18,7 +18,7 @@ export default {
         )
     ),
   async execute(interaction) {
-    const hasPermission = (roles.MANAGER_ROLE && interaction.member.roles.cache.has(roles.MANAGER_ROLE));
+    const hasPermission = (config.roles.mainServer.staffManagerRole && interaction.member.roles.cache.has(config.roles.mainServer.staffManagerRole));
     
     if (!hasPermission) {
       return interaction.reply({ 

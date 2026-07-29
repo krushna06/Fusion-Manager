@@ -1,5 +1,4 @@
 import config from '../../config.js';
-import roles from '../../config/roles.json' with { type: 'json' };
 import { EmbedBuilder } from 'discord.js';
 
 let reconciler;
@@ -11,8 +10,8 @@ export function setLinkerReconciler(linkerReconciler) {
 export default {
   once: false,
   async execute(client, member) {
-    if (member.guild.id === config.STAFF_GUILD_ID) {
-      const onboardingRole = await member.guild.roles.fetch(roles.ONBOARDING_ROLE).catch(() => null);
+    if (member.guild.id === config.channels.staffServer.guildId) {
+      const onboardingRole = await member.guild.roles.fetch(config.roles.staffServer.onboardingRole).catch(() => null);
       
       if (onboardingRole) {
         try {

@@ -1,6 +1,6 @@
 import { PermissionsBitField, SlashCommandBuilder } from 'discord.js';
 import { getSuggestionByMessageId, updateSuggestionStatus } from '../../database/models/suggestion.js';
-import roles from '../../config/roles.json' with { type: 'json' };
+import config from '../../config.js';
 import { success, error } from '../../utils/logger.js';
 
 export default {
@@ -10,7 +10,7 @@ export default {
     .setDescription('Accept a suggestion')
     .addStringOption(option => option.setName('msg_id').setDescription('Message ID of the suggestion').setRequired(true)),
   async execute(interaction) {
-    const hasPermission = (roles.MANAGER_ROLE && interaction.member.roles.cache.has(roles.MANAGER_ROLE));
+    const hasPermission = (config.roles.mainServer.staffManagerRole && interaction.member.roles.cache.has(config.roles.mainServer.staffManagerRole));
     
     if (!hasPermission) {
       return interaction.reply({ 

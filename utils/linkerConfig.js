@@ -39,12 +39,14 @@ const DEFAULT_REALMS = [
 
 export function loadConfig() {
     const mainConfigPath = path.resolve(__dirname, "../config/config.json");
+    const rolesConfigPath = path.resolve(__dirname, "../config/roles.json");
     const raw = JSON.parse(readFileSync(mainConfigPath, "utf8"));
+    const roles = JSON.parse(readFileSync(rolesConfigPath, "utf8"));
     const linkerConfig = raw.linker ?? {};
     const mysql = linkerConfig.mysql ?? {};
     const config = {
         token: raw.TOKEN ?? "",
-        guildId: linkerConfig.guildId ?? "",
+        guildId: roles.mainServer.guildId ?? "",
         donatorRoleId: linkerConfig.donatorRoleId ?? "",
         boosterRoleId: linkerConfig.boosterRoleId ?? "",
         logChannelId: linkerConfig.logChannelId ?? "",
@@ -68,12 +70,12 @@ export function loadConfig() {
     }
     const missing = [
         !config.token && "token",
-        !config.guildId && "guildId",
+        !config.guildId && "guildId (in roles.json mainServer.guildId)",
         !config.donatorRoleId && "donatorRoleId",
         !config.mysql.user && "mysql.user",
     ].filter(Boolean);
     if (missing.length > 0) {
-        throw new Error(`config.json missing required linker fields: ${missing.join(", ")}`);
+        throw new Error(`config.json/roles.json missing required linker fields: ${missing.join(", ")}`);
     }
     return config;
 }

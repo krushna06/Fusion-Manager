@@ -1,7 +1,6 @@
 import { EmbedBuilder, PermissionsBitField, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { createStaffApplication, updateStaffApplicationStatus } from '../../database/mainDb.js';
-import roles from '../../config/roles.json' with { type: 'json' };
-import config from '../../config/config.json' with { type: 'json' };
+import config from '../../config.js';
 
 export async function handleStaffApplicationModal(interaction, data = null) {
   await interaction.deferReply({ flags: 64 });
@@ -70,7 +69,7 @@ export async function handleStaffApplicationModal(interaction, data = null) {
   };
 
   const guild = interaction.guild;
-  const categoryId = config.STAFF_APPLICATION_CATEGORY_ID;
+  const categoryId = config.channels.mainServer.staffApplicationCategoryId;
 
   if (!categoryId) {
     return interaction.editReply({ content: 'Staff application category ID not configured. Please contact an admin.' });
@@ -81,7 +80,7 @@ export async function handleStaffApplicationModal(interaction, data = null) {
     return interaction.editReply({ content: 'Staff application category not found. Please contact an admin.' });
   }
 
-  const managerRoles = Array.isArray(roles.MANAGER_ROLE) ? roles.MANAGER_ROLE : [roles.MANAGER_ROLE];
+  const managerRoles = Array.isArray(config.roles.mainServer.staffManagerRole) ? config.roles.mainServer.staffManagerRole : [config.roles.mainServer.staffManagerRole];
   const validManagerRoles = [];
 
   for (const roleId of managerRoles) {
@@ -99,10 +98,6 @@ export async function handleStaffApplicationModal(interaction, data = null) {
     {
       id: guild.id,
       deny: [PermissionsBitField.Flags.ViewChannel],
-    },
-    {
-      id: interaction.user.id,
-      allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages],
     },
     ...validManagerRoles.map(role => ({
       id: role.id,

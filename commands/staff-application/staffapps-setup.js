@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { saveStaffAppSetup } from '../../database/mainDb.js';
-import roles from '../../config/roles.json' with { type: 'json' };
+import config from '../../config.js';
 
 export default {
   name: 'staffapps-setup',
@@ -8,7 +8,7 @@ export default {
     .setName('staffapps-setup')
     .setDescription('Setup the staff application embed with apply button'),
   async execute(interaction) {
-    if (!interaction.member.roles.cache.has(roles.STAFF_APPLICATION_MANAGER_ROLE)) {
+    if (!interaction.member.roles.cache.has(config.roles.mainServer.staffManagerRole)) {
       return interaction.reply({ content: 'You do not have permission to use this command.', flags: 64 });
     }
 
