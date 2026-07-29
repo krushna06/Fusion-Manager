@@ -177,7 +177,11 @@ export async function handleStaffApplicationModal(interaction, data = null) {
       new ButtonBuilder()
         .setCustomId(`staff_reject_${channel.id}`)
         .setLabel('Reject')
-        .setStyle(ButtonStyle.Danger)
+        .setStyle(ButtonStyle.Danger),
+      new ButtonBuilder()
+        .setCustomId(`staff_bgcheck_${channel.id}`)
+        .setLabel('Background Check')
+        .setStyle(ButtonStyle.Primary)
     );
 
   await channel.send({

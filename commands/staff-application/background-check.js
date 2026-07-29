@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, EmbedBuilder, PermissionsBitField } from 'discord.js';
 import config from '../../config.js';
 import { LinkerDb } from '../../database/linkerDb.js';
-import { getPlayerByName, getPlayerPlaytime, getPlayerKills, getPlayerDeaths, getPlayerVotes, getPlayerPing, getPlayerGeolocations } from '../../database/planDb.js';
+import { getPlayerByName, getPlayerPlaytime, getPlayerKills, getPlayerDeaths, getPlayerVotes, getPlayerPing, getPlayerGeolocations, getPlayerAccountType, getPlayerActivity } from '../../database/planDb.js';
 import { getPlayerBans, getPlayerMutes, getPlayerKicks, getPlayerWarnings, getActiveBan, getActiveMute } from '../../database/litebansDb.js';
 
 function formatPlaytime(ms) {
@@ -41,6 +41,20 @@ export default {
         }
       } catch (err) {
         console.error('Error checking staff manager role in main server:', err);
+      }
+    }
+
+    if (!hasPermission && config.roles.mainServer.managerRole && config.channels.mainServer.guildId) {
+      try {
+        const mainGuild = await interaction.client.guilds.fetch(config.channels.mainServer.guildId).catch(() => null);
+        if (mainGuild) {
+          const mainMember = await mainGuild.members.fetch(interaction.user.id).catch(() => null);
+          if (mainMember && mainMember.roles.cache.has(config.roles.mainServer.managerRole)) {
+            hasPermission = true;
+          }
+        }
+      } catch (err) {
+        console.error('Error checking manager role in main server:', err);
       }
     }
     
@@ -121,6 +135,16 @@ export default {
       try {
         embed.addFields({ name: 'UUID', value: `\`${minecraftUUID}\``, inline: true });
 
+        const accountType = await getPlayerAccountType(minecraftUUID);
+        if (accountType) {
+          embed.addFields({ name: 'Account Type', value: accountType, inline: true });
+        }
+
+        const activity = await getPlayerActivity(minecraftUUID, 7);
+        if (activity && activity.total_playtime) {
+          embed.addFields({ name: 'Activity (7d)', value: `${formatPlaytime(activity.total_playtime)} total`, inline: true });
+        }
+
         const playtime = await getPlayerPlaytime(minecraftUUID);
         if (playtime) {
           embed.addFields({ name: 'Total Playtime', value: formatPlaytime(playtime.total_playtime), inline: true });
@@ -188,10 +212,7 @@ export default {
             embed.addFields({ name: '🔇 Active Mute', value: `${expiry} - ${activeMute.reason?.substring(0, 50) || 'No reason'}`, inline: false });
           }
 
-          embed.addFields({ name: 'Total Bans', value: bans.length.toString(), inline: true });
-          embed.addFields({ name: 'Total Mutes', value: mutes.length.toString(), inline: true });
-          embed.addFields({ name: 'Total Kicks', value: kicks.length.toString(), inline: true });
-          embed.addFields({ name: 'Total Warnings', value: warnings.length.toString(), inline: true });
+          embed.addFields({ name: 'Punishments', value: `${bans.length} bans, ${mutes.length} mutes, ${kicks.length} kicks, ${warnings.length} warnings`, inline: false });
 
           if (bans.length > 0) {
             const recentBan = bans[0];

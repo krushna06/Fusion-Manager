@@ -140,6 +140,34 @@ async function getPlayerPing(uuid) {
   return rows[0] || null;
 }
 
+async function getPlayerAccountType(uuid) {
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    'SELECT registered FROM plan_users WHERE uuid = ?',
+    [uuid]
+  );
+  if (rows.length > 0) {
+    const player = rows[0];
+    return player.registered === -1 ? 'Cracked' : 'Premium';
+  }
+  return 'Unknown';
+}
+
+async function getPlayerActivity(uuid, days = 7) {
+  const pool = getPool();
+  const milliseconds = days * 24 * 60 * 60 * 1000;
+  const [rows] = await pool.execute(
+    `SELECT 
+      SUM(session_end - session_start) as total_playtime,
+      COUNT(*) as session_count
+     FROM plan_sessions 
+     WHERE user_id = (SELECT id FROM plan_users WHERE uuid = ?)
+     AND session_start > UNIX_TIMESTAMP() * 1000 - ?`,
+    [uuid, milliseconds]
+  );
+  return rows[0] || null;
+}
+
 export {
   getPool,
   getPlayerByUUID,
@@ -151,5 +179,7 @@ export {
   getPlayerNicknames,
   getPlayerGeolocations,
   getPossibleAlts,
-  getPlayerPing
+  getPlayerPing,
+  getPlayerAccountType,
+  getPlayerActivity
 };
