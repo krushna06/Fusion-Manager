@@ -3,6 +3,7 @@ import { getTradeChannel } from '../../database/models/trade.js';
 import { handleBugReport } from './bug/bugCreate.js';
 import { handleSuggestion } from './suggestion/suggestionCreate.js';
 import { handleTradeRequest } from './trade/tradeCreate.js';
+import config from '../../config.js';
 
 export default {
   once: false,
@@ -13,6 +14,11 @@ export default {
       const reportChannelId = await getBugReportChannel(message.guild.id);
       const suggestionChannelId = await getSuggestionChannel(message.guild.id);
       const tradeChannelId = await getTradeChannel(message.guild.id);
+      
+      if (message.channel.id === config.channels.staffServer.staffDetailsChannelId) {
+        await message.delete().catch(console.error);
+        return;
+      }
       
       if (message.channel.id === reportChannelId) {
         await handleBugReport(message);

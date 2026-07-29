@@ -1,13 +1,12 @@
 {
   "mainServer": {
-    "guildId": "",
     "mediaRole": "",
     "staffManagerRole": "",
+    "managerRole": "",
     "staffRole": [""],
     "trialStaffRole": ""
   },
   "staffServer": {
-    "guildId": "",
     "onboardingRole": "",
     "staffMemberRole": ""
   }

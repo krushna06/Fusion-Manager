@@ -1,10 +1,11 @@
 import { updateStaffApplicationStatus, getStaffApplicationByChannel } from '../../database/mainDb.js';
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, AttachmentBuilder } from 'discord.js';
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, AttachmentBuilder, PermissionsBitField } from 'discord.js';
 import { generateFromMessages } from 'discord-html-transcripts';
 import config from '../../config.js';
 
 export async function handleStaffAppDecisionButton(interaction) {
-  if (!interaction.member.roles.cache.has(config.roles.mainServer.staffManagerRole)) {
+  if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) &&
+      !interaction.member.roles.cache.has(config.roles.mainServer.staffManagerRole)) {
     return interaction.reply({ 
       content: 'You do not have permission to use this button.', 
       flags: 64 
@@ -28,13 +29,35 @@ export async function handleStaffAppDecisionButton(interaction) {
           await member.roles.add(config.roles.mainServer.trialStaffRole).catch(console.error);
         }
         
-        // Give user permission to view the channel
         const channel = await interaction.guild.channels.fetch(channelId).catch(() => null);
         if (channel) {
           await channel.permissionOverwrites.edit(application.staff_id, {
             ViewChannel: true,
             SendMessages: true
           }).catch(console.error);
+        }
+        
+        try {
+          const staffGuild = await interaction.client.guilds.fetch(config.channels.staffServer.guildId).catch(() => null);
+          if (staffGuild) {
+            const invite = await staffGuild.invites.create(config.channels.staffServer.playerReportsChannelId || staffGuild.rulesChannelId || staffGuild.systemChannelId, {
+              maxUses: 1,
+              maxAge: 86400,
+              unique: true,
+              reason: `Staff application accepted for user ${application.staff_id}`
+            }).catch(console.error);
+            
+            if (invite) {
+              const user = await interaction.client.users.fetch(application.staff_id).catch(() => null);
+              if (user) {
+                await user.send({
+                  content: `Congratulations! Your staff application has been accepted. Please join the staff server using this invite link: ${invite.url}`
+                }).catch(console.error);
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error generating invite or sending DM to accepted staff:', err);
         }
       }
       

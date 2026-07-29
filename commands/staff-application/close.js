@@ -9,7 +9,8 @@ export default {
     .setDescription('Close this staff application channel'),
   async execute(interaction) {
     try {
-      if (!interaction.member.roles.cache.has(config.roles.mainServer.staffManagerRole)) {
+      if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) &&
+          !interaction.member.roles.cache.has(config.roles.mainServer.staffManagerRole)) {
         return interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
       }
       const channel = interaction.channel;

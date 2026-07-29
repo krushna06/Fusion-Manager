@@ -8,7 +8,8 @@ export default {
     .setName('staffapps-setup')
     .setDescription('Setup the staff application embed with apply button'),
   async execute(interaction) {
-    if (!interaction.member.roles.cache.has(config.roles.mainServer.staffManagerRole)) {
+    if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) &&
+        !interaction.member.roles.cache.has(config.roles.mainServer.staffManagerRole)) {
       return interaction.reply({ content: 'You do not have permission to use this command.', flags: 64 });
     }
 

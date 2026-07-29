@@ -15,8 +15,22 @@ export default {
         .addChannelTypes(ChannelType.GuildText)
     ),
   async execute(interaction) {
-    const hasPermission = interaction.member.permissions.has(PermissionsBitField.Flags.ManageChannels) || 
-                          (config.roles.mainServer.staffManagerRole && interaction.member.roles.cache.has(config.roles.mainServer.staffManagerRole));
+    let hasPermission = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) ||
+                        interaction.member.permissions.has(PermissionsBitField.Flags.ManageChannels);
+    
+    if (!hasPermission && config.roles.mainServer.managerRole && config.channels.mainServer.guildId) {
+      try {
+        const mainGuild = await interaction.client.guilds.fetch(config.channels.mainServer.guildId).catch(() => null);
+        if (mainGuild) {
+          const mainMember = await mainGuild.members.fetch(interaction.user.id).catch(() => null);
+          if (mainMember && mainMember.roles.cache.has(config.roles.mainServer.managerRole)) {
+            hasPermission = true;
+          }
+        }
+      } catch (err) {
+        console.error('Error checking manager role in main server:', err);
+      }
+    }
     
     if (!hasPermission) {
       return interaction.reply({ 

@@ -40,13 +40,15 @@ const DEFAULT_REALMS = [
 export function loadConfig() {
     const mainConfigPath = path.resolve(__dirname, "../config/config.json");
     const rolesConfigPath = path.resolve(__dirname, "../config/roles.json");
+    const channelsConfigPath = path.resolve(__dirname, "../config/channels.json");
     const raw = JSON.parse(readFileSync(mainConfigPath, "utf8"));
     const roles = JSON.parse(readFileSync(rolesConfigPath, "utf8"));
+    const channels = JSON.parse(readFileSync(channelsConfigPath, "utf8"));
     const linkerConfig = raw.linker ?? {};
     const mysql = linkerConfig.mysql ?? {};
     const config = {
         token: raw.TOKEN ?? "",
-        guildId: roles.mainServer.guildId ?? "",
+        guildId: channels.mainServer.guildId ?? "",
         donatorRoleId: linkerConfig.donatorRoleId ?? "",
         boosterRoleId: linkerConfig.boosterRoleId ?? "",
         logChannelId: linkerConfig.logChannelId ?? "",
@@ -70,7 +72,7 @@ export function loadConfig() {
     }
     const missing = [
         !config.token && "token",
-        !config.guildId && "guildId (in roles.json mainServer.guildId)",
+        !config.guildId && "guildId (in channels.json mainServer.guildId)",
         !config.donatorRoleId && "donatorRoleId",
         !config.mysql.user && "mysql.user",
     ].filter(Boolean);
