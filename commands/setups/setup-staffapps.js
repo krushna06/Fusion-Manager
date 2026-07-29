@@ -1,15 +1,30 @@
-import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField } from 'discord.js';
 import { saveStaffAppSetup } from '../../database/mainDb.js';
 import config from '../../config.js';
 
 export default {
-  name: 'staffapps-setup',
+  name: 'setup-staffapps',
   data: new SlashCommandBuilder()
-    .setName('staffapps-setup')
+    .setName('setup-staffapps')
     .setDescription('Setup the staff application embed with apply button'),
   async execute(interaction) {
-    if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) &&
-        !interaction.member.roles.cache.has(config.roles.mainServer.staffManagerRole)) {
+    let hasPermission = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator);
+    
+    if (!hasPermission && config.roles.mainServer.staffManagerRole && config.channels.mainServer.guildId) {
+      try {
+        const mainGuild = await interaction.client.guilds.fetch(config.channels.mainServer.guildId).catch(() => null);
+        if (mainGuild) {
+          const mainMember = await mainGuild.members.fetch(interaction.user.id).catch(() => null);
+          if (mainMember && mainMember.roles.cache.has(config.roles.mainServer.staffManagerRole)) {
+            hasPermission = true;
+          }
+        }
+      } catch (err) {
+        console.error('Error checking staff manager role in main server:', err);
+      }
+    }
+    
+    if (!hasPermission) {
       return interaction.reply({ content: 'You do not have permission to use this command.', flags: 64 });
     }
 

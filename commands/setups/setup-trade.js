@@ -4,9 +4,9 @@ import config from '../../config.js';
 import { success, error } from '../../utils/logger.js';
 
 export default {
-  name: 'trade-setup',
+  name: 'setup-trade',
   data: new SlashCommandBuilder()
-    .setName('trade-setup')
+    .setName('setup-trade')
     .setDescription('Set up a trade channel for users')
     .addChannelOption(option => 
       option.setName('channel')

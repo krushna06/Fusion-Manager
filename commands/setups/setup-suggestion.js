@@ -4,9 +4,9 @@ import config from '../../config.js';
 import { success, error, info } from '../../utils/logger.js';
 
 export default {
-  name: 'suggestion-setup',
+  name: 'setup-suggestion',
   data: new SlashCommandBuilder()
-    .setName('suggestion-setup')
+    .setName('setup-suggestion')
     .setDescription('Setup a suggestion channel for users')
     .addChannelOption(option => 
       option.setName('channel')

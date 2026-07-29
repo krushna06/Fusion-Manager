@@ -4,9 +4,9 @@ import config from '../../config.js';
 import { success, error } from '../../utils/logger.js';
 
 export default {
-  name: 'bug-setup',
+  name: 'setup-bug',
   data: new SlashCommandBuilder()
-    .setName('bug-setup')
+    .setName('setup-bug')
     .setDescription('Setup a bug reporting channel for users')
     .addChannelOption(option => 
       option.setName('channel')
