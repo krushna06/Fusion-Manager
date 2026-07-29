@@ -25,7 +25,7 @@ export async function handleStaffApplicationStep1(interaction, db = linkerDb) {
 
   const modal = new ModalBuilder()
     .setCustomId('staff_application_modal_step1')
-    .setTitle('Staff Application - Step 1/6');
+    .setTitle('Staff Application - Step 1/5');
 
   const ignInput = new TextInputBuilder()
     .setCustomId('ign')

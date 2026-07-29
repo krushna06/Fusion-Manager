@@ -29,12 +29,6 @@ export async function handleStaffApplicationModal(interaction, data = null) {
   const skills = data?.skills ?? interaction.fields.getTextInputValue('skills');
   const strengthsWeaknesses = data?.strengthsWeaknesses ?? interaction.fields.getTextInputValue('strengths_weaknesses');
   const whyAccept = data?.whyAccept ?? interaction.fields.getTextInputValue('why_accept');
-  const scenario1 = data?.scenario1 ?? interaction.fields.getTextInputValue('scenario1');
-  const scenario2 = data?.scenario2 ?? interaction.fields.getTextInputValue('scenario2');
-  const scenario3 = data?.scenario3 ?? interaction.fields.getTextInputValue('scenario3');
-  const scenario4 = data?.scenario4 ?? interaction.fields.getTextInputValue('scenario4');
-  const scenario5 = data?.scenario5 ?? interaction.fields.getTextInputValue('scenario5');
-  const scenario6 = data?.scenario6 ?? interaction.fields.getTextInputValue('scenario6');
 
   const responses = {
     ign,
@@ -59,13 +53,7 @@ export async function handleStaffApplicationModal(interaction, data = null) {
     motivation,
     skills,
     strengthsWeaknesses,
-    whyAccept,
-    scenario1,
-    scenario2,
-    scenario3,
-    scenario4,
-    scenario5,
-    scenario6
+    whyAccept
   };
 
   const guild = interaction.guild;
@@ -156,17 +144,6 @@ export async function handleStaffApplicationModal(interaction, data = null) {
       { name: 'Why Accept', value: whyAccept, inline: false }
     );
 
-  const embed4 = new EmbedBuilder()
-    .setTitle('Staff Application - Phase 2 Scenarios')
-    .setColor(0x5865F2)
-    .addFields(
-      { name: 'Scenario 1: Kill-aura in PvP arena', value: scenario1, inline: false },
-      { name: 'Scenario 2: Toxic argument in chat', value: scenario2, inline: false },
-      { name: 'Scenario 3: Bug refund request', value: scenario3, inline: false },
-      { name: 'Scenario 4: Friend asks to overlook violation', value: scenario4, inline: false },
-      { name: 'Scenario 5: Your unique motivation & skills', value: scenario5, inline: false },
-      { name: 'Scenario 6: Weekly availability & balance', value: scenario6, inline: false }
-    );
 
   const row = new ActionRowBuilder()
     .addComponents(
@@ -186,7 +163,7 @@ export async function handleStaffApplicationModal(interaction, data = null) {
 
   await channel.send({
     content: 'New staff application submitted!',
-    embeds: [embed1, embed2, embed3, embed4],
+    embeds: [embed1, embed2, embed3],
     components: [row]
   });
 

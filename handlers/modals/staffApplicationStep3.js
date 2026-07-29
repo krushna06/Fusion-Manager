@@ -3,7 +3,7 @@ import { ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle } from
 export async function handleStaffApplicationStep3(interaction) {
   const modal = new ModalBuilder()
     .setCustomId('staff_application_modal_step3')
-    .setTitle('Staff Application - Step 3/6');
+    .setTitle('Staff Application - Step 3/5');
 
   const languagesInput = new TextInputBuilder()
     .setCustomId('languages')

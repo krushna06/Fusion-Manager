@@ -57,7 +57,11 @@ export async function handleStaffAppDecisionButton(interaction) {
                 interaction.customId.startsWith('staff_bgcheck_') ? 'bgcheck' : 'close';
   const channelId = interaction.customId.split('_').pop();
 
-  await interaction.deferReply();
+  if (action === 'bgcheck') {
+    await interaction.deferReply({ flags: 64 });
+  } else {
+    await interaction.deferReply();
+  }
 
   try {
     if (action === 'accept') {

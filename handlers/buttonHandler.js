@@ -31,7 +31,7 @@ export async function handleButtonInteraction(interaction) {
       return await handleStaffApplicationButton(interaction);
     }
     
-    if (interaction.customId.startsWith('staff_accept_') || interaction.customId.startsWith('staff_reject_')) {
+    if (interaction.customId.startsWith('staff_accept_') || interaction.customId.startsWith('staff_reject_') || interaction.customId.startsWith('staff_bgcheck_')) {
       return await handleStaffAppDecisionButton(interaction);
     }
     

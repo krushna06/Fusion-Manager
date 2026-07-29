@@ -3,7 +3,7 @@ import { ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle } from
 export async function handleStaffApplicationStep2(interaction) {
   const modal = new ModalBuilder()
     .setCustomId('staff_application_modal_step2')
-    .setTitle('Staff Application - Step 2/6');
+    .setTitle('Staff Application - Step 2/5');
 
   const regionInput = new TextInputBuilder()
     .setCustomId('region')

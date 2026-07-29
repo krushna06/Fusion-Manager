@@ -4,7 +4,6 @@ import { handleStaffApplicationStep2 } from './modals/staffApplicationStep2.js';
 import { handleStaffApplicationStep3 } from './modals/staffApplicationStep3.js';
 import { handleStaffApplicationStep4 } from './modals/staffApplicationStep4.js';
 import { handleStaffApplicationStep5 } from './modals/staffApplicationStep5.js';
-import { handleStaffApplicationStep6 } from './modals/staffApplicationStep6.js';
 import { handleLOAExplanationModal } from './modals/loaExplanationModal.js';
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, PermissionsBitField } from 'discord.js';
 import config from '../config.js';
@@ -81,7 +80,7 @@ export async function handleModalSubmit(interaction) {
         );
       
       await interaction.reply({ 
-        content: '✅ Step 1/6 completed! Click below to continue to step 2.', 
+        content: '✅ Step 1/5 completed! Click below to continue to step 2.', 
         components: [row],
         flags: 64 
       });
@@ -106,7 +105,7 @@ export async function handleModalSubmit(interaction) {
         );
       
       await interaction.reply({ 
-        content: '✅ Step 2/6 completed! Click below to continue to step 3.', 
+        content: '✅ Step 2/5 completed! Click below to continue to step 3.', 
         components: [row],
         flags: 64 
       });
@@ -131,7 +130,7 @@ export async function handleModalSubmit(interaction) {
         );
       
       await interaction.reply({ 
-        content: '✅ Step 3/6 completed! Click below to continue to step 4.', 
+        content: '✅ Step 3/5 completed! Click below to continue to step 4.', 
         components: [row],
         flags: 64 
       });
@@ -156,7 +155,7 @@ export async function handleModalSubmit(interaction) {
         );
       
       await interaction.reply({ 
-        content: '✅ Step 4/6 completed! Click below to continue to step 5.', 
+        content: '✅ Step 4/5 completed! Click below to continue to step 5.', 
         components: [row],
         flags: 64 
       });
@@ -168,32 +167,6 @@ export async function handleModalSubmit(interaction) {
       data.skills = interaction.fields.getTextInputValue('skills');
       data.strengthsWeaknesses = interaction.fields.getTextInputValue('strengths_weaknesses');
       data.whyAccept = interaction.fields.getTextInputValue('why_accept');
-      data.scenario1 = interaction.fields.getTextInputValue('scenario1');
-      data.scenario2 = interaction.fields.getTextInputValue('scenario2');
-      applicationData.set(interaction.user.id, data);
-      
-      const row = new ActionRowBuilder()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId('staff_app_step6')
-            .setLabel('Continue to Step 6')
-            .setStyle(ButtonStyle.Primary)
-        );
-      
-      await interaction.reply({ 
-        content: '✅ Step 5/6 completed! Click below to continue to step 6.', 
-        components: [row],
-        flags: 64 
-      });
-      return;
-    }
-    
-    if (interaction.customId === 'staff_application_modal_step6') {
-      const data = applicationData.get(interaction.user.id) || {};
-      data.scenario3 = interaction.fields.getTextInputValue('scenario3');
-      data.scenario4 = interaction.fields.getTextInputValue('scenario4');
-      data.scenario5 = interaction.fields.getTextInputValue('scenario5');
-      data.scenario6 = interaction.fields.getTextInputValue('scenario6');
       applicationData.set(interaction.user.id, data);
       
       await handleStaffApplicationModal(interaction, data);
