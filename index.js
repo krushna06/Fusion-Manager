@@ -3,7 +3,7 @@ import config from './config.js';
 import { loadCommands } from './handlers/commandHandler.js';
 import { loadEvents } from './handlers/eventHandler.js';
 import { initDatabase } from './database/mainDb.js';
-import { info, error, success } from './utils/logger.js';
+import { info, error, success, startupTable } from './utils/logger.js';
 import { LinkerDb } from './database/linkerDb.js';
 import { LinkerReconciler } from './handlers/linkerReconciler.js';
 import { loadConfig } from './utils/linkerConfig.js';
@@ -24,11 +24,9 @@ let linkerConfig = null;
 
 async function init() {
   try {
-    info('Starting bot initialization...');
     await initDatabase();
     
     try {
-      info('Initializing linker components...');
       linkerConfig = loadConfig();
       linkerDb = new LinkerDb(linkerConfig);
       
@@ -43,41 +41,31 @@ async function init() {
       }
       
       linkerReconciler = new LinkerReconciler(client, linkerDb, linkerConfig);
-      
-      success('Linker components initialized');
     } catch (linkerErr) {
       error('Error initializing linker components', linkerErr);
       throw linkerErr;
     }
     
     try {
-      info('Loading commands...');
-      const commands = await loadCommands(client, linkerDb, linkerReconciler);
-      success(`Commands loaded successfully`);
+      await loadCommands(client, linkerDb, linkerReconciler);
     } catch (cmdErr) {
       error('Error loading commands', cmdErr);
       throw cmdErr;
     }
     
     try {
-      info('Loading events...');
       await loadEvents(client, linkerReconciler);
-      success('Events loaded successfully');
     } catch (evtErr) {
       error('Error loading events', evtErr);
       throw evtErr;
     }
     
     try {
-      info('Logging in to Discord...');
       await client.login(config.TOKEN);
-      success(`Logged in successfully as ${client.user.tag}`);
     } catch (loginErr) {
       error('Error logging in to Discord', loginErr);
       throw loginErr;
     }
-    
-    success('Bot initialization completed successfully');
   } catch (err) {
     error('Error during bot initialization', err);
     process.exit(1);
@@ -132,14 +120,32 @@ client.once('ready', async () => {
       if (!linkerReconciler) return;
       
       try {
-        const stats = await linkerReconciler.fullSweep();
-        info(`Linker sweep: links=${stats.links} roleAdded=${stats.roleAdded} roleRemoved=${stats.roleRemoved} boosterQueued=${stats.boosterQueued}`);
+        await linkerReconciler.fullSweep();
       } catch (error) {
         error("sweep failed", error);
       }
     }, linkerConfig.sweepMinutes * 60000);
     
-    success('Linker background tasks started');
+    const totalMembers = client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0);
+    let linkedUsers = 0;
+    
+    if (linkerDb) {
+      try {
+        const allLinks = await linkerDb.getAllLinks();
+        linkedUsers = allLinks.length;
+      } catch (error) {
+        console.error('Error fetching linked users count:', error);
+      }
+    }
+    
+    startupTable({
+      'Bot Username': client.user.tag,
+      'Commands Loaded': client.commands?.size || 0,
+      'Servers': client.guilds.cache.size,
+      'Total Members': totalMembers,
+      'Users Linked': linkedUsers,
+      'Status': 'Ready'
+    });
   } catch (error) {
     error('Error in linker ready handler', error);
   }
