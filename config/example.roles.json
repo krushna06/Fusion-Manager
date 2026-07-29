@@ -8,6 +8,6 @@
   },
   "staffServer": {
     "onboardingRole": "",
-    "staffMemberRole": ""
+    "staffMemberRole": [""]
   }
 }

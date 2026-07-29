@@ -5,6 +5,7 @@ import { handleStaffApplicationStep3 } from './modals/staffApplicationStep3.js';
 import { handleStaffApplicationStep4 } from './modals/staffApplicationStep4.js';
 import { handleStaffApplicationStep5 } from './modals/staffApplicationStep5.js';
 import { handleStaffApplicationStep6 } from './modals/staffApplicationStep6.js';
+import { handleLOAExplanationModal } from './modals/loaExplanationModal.js';
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, PermissionsBitField } from 'discord.js';
 import config from '../config.js';
 
@@ -198,6 +199,10 @@ export async function handleModalSubmit(interaction) {
       await handleStaffApplicationModal(interaction, data);
       applicationData.delete(interaction.user.id);
       return;
+    }
+    
+    if (interaction.customId.startsWith('loa_explanation_')) {
+      return await handleLOAExplanationModal(interaction);
     }
     
     console.log('No handler found for modal:', interaction.customId);

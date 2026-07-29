@@ -105,6 +105,45 @@ async function initDatabase() {
     )
   `);
 
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS loa_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      guild_id TEXT NOT NULL,
+      start_date TEXT NOT NULL,
+      end_date TEXT NOT NULL,
+      reason TEXT NOT NULL,
+      status TEXT DEFAULT 'pending',
+      days_requested INTEGER NOT NULL,
+      auto_approved INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS loa_settings (
+      guild_id TEXT PRIMARY KEY,
+      loa_channel_id TEXT,
+      manager_role_ids TEXT,
+      loa_log_channel_id TEXT
+    )
+  `);
+
+  const loaPragma = await db.all(`PRAGMA table_info(loa_settings)`);
+  if (loaPragma.some(col => col.name === 'manager_role_id') && !loaPragma.some(col => col.name === 'manager_role_ids')) {
+    await db.exec(`ALTER TABLE loa_settings RENAME COLUMN manager_role_id TO manager_role_ids`);
+  }
+
+  if (!loaPragma.some(col => col.name === 'loa_log_channel_id')) {
+    await db.exec(`ALTER TABLE loa_settings ADD COLUMN loa_log_channel_id TEXT`);
+  }
+
+  const loaRequestsPragma = await db.all(`PRAGMA table_info(loa_requests)`);
+  if (!loaRequestsPragma.some(col => col.name === 'auto_approved')) {
+    await db.exec(`ALTER TABLE loa_requests ADD COLUMN auto_approved INTEGER DEFAULT 0`);
+  }
+
   const pragma = await db.all(`PRAGMA table_info(staff_applications)`);
   if (!pragma.some(col => col.name === 'additional_users')) {
     await db.exec(`ALTER TABLE staff_applications ADD COLUMN additional_users TEXT`);
@@ -386,6 +425,118 @@ async function getStaffAppSetup(channelId) {
   );
 }
 
+async function createLOARequest(userId, guildId, startDate, endDate, reason, daysRequested, autoApproved = 0) {
+  const db = await dbPromise;
+  const result = await db.run(
+    `INSERT INTO loa_requests (user_id, guild_id, start_date, end_date, reason, days_requested, status, auto_approved) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)`,
+    [userId, guildId, startDate, endDate, reason, daysRequested, autoApproved]
+  );
+  return result.lastID;
+}
+
+async function updateLOAStatus(id, status) {
+  const db = await dbPromise;
+  await db.run(
+    `UPDATE loa_requests SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    [status, id]
+  );
+  return await getLOARequestById(id);
+}
+
+async function getLOARequestById(id) {
+  const db = await dbPromise;
+  return await db.get(
+    `SELECT * FROM loa_requests WHERE id = ?`,
+    [id]
+  );
+}
+
+async function getLOARequestsByUser(userId, guildId) {
+  const db = await dbPromise;
+  return await db.all(
+    `SELECT * FROM loa_requests WHERE user_id = ? AND guild_id = ? ORDER BY created_at DESC`,
+    [userId, guildId]
+  );
+}
+
+async function getLOARequestsByStatus(guildId, status) {
+  const db = await dbPromise;
+  return await db.all(
+    `SELECT * FROM loa_requests WHERE guild_id = ? AND status = ? ORDER BY created_at DESC`,
+    [guildId, status]
+  );
+}
+
+async function getUserLOABalance(userId, guildId) {
+  const db = await dbPromise;
+  const now = new Date();
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  
+  const result = await db.get(
+    `SELECT COALESCE(SUM(days_requested), 0) as total_days 
+     FROM loa_requests 
+     WHERE user_id = ? AND guild_id = ? AND status = 'approved' 
+     AND start_date >= ?`,
+    [userId, guildId, firstDayOfMonth]
+  );
+  
+  return 7 - (result.total_days || 0);
+}
+
+async function hasAutoApprovedLOAThisMonth(userId, guildId) {
+  const db = await dbPromise;
+  const now = new Date();
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  
+  const result = await db.get(
+    `SELECT COUNT(*) as count 
+     FROM loa_requests 
+     WHERE user_id = ? AND guild_id = ? AND status = 'approved' 
+     AND start_date >= ? AND auto_approved = 1`,
+    [userId, guildId, firstDayOfMonth]
+  );
+  
+  return (result.count || 0) > 0;
+}
+
+async function setLOAChannel(guildId, channelId, managerRoleIds, logChannelId = null) {
+  const db = await dbPromise;
+  const managerRoleIdsJson = Array.isArray(managerRoleIds) ? JSON.stringify(managerRoleIds) : managerRoleIds;
+  await db.run(
+    `INSERT OR REPLACE INTO loa_settings (guild_id, loa_channel_id, manager_role_ids, loa_log_channel_id) VALUES (?, ?, ?, ?)`,
+    [guildId, channelId, managerRoleIdsJson, logChannelId]
+  );
+}
+
+async function getLOASettings(guildId) {
+  const db = await dbPromise;
+  return await db.get(
+    `SELECT * FROM loa_settings WHERE guild_id = ?`,
+    [guildId]
+  );
+}
+
+async function getActiveLOAByUser(userId, guildId) {
+  const db = await dbPromise;
+  const now = new Date().toISOString().split('T')[0];
+  return await db.get(
+    `SELECT * FROM loa_requests 
+     WHERE user_id = ? AND guild_id = ? AND status = 'approved' 
+     AND start_date <= ? AND end_date >= ?`,
+    [userId, guildId, now, now]
+  );
+}
+
+async function getTotalLOAsByUser(userId, guildId) {
+  const db = await dbPromise;
+  const result = await db.get(
+    `SELECT COUNT(*) as total FROM loa_requests 
+     WHERE user_id = ? AND guild_id = ? AND status = 'approved'`,
+    [userId, guildId]
+  );
+  return result.total || 0;
+}
+
 export {
   dbPromise,
   initDatabase,
@@ -406,5 +557,17 @@ export {
   getStaffApplicationByUser,
   updateStaffApplicationStatus,
   saveStaffAppSetup,
-  getStaffAppSetup
+  getStaffAppSetup,
+  
+  createLOARequest,
+  updateLOAStatus,
+  getLOARequestById,
+  getLOARequestsByUser,
+  getLOARequestsByStatus,
+  getUserLOABalance,
+  hasAutoApprovedLOAThisMonth,
+  setLOAChannel,
+  getLOASettings,
+  getActiveLOAByUser,
+  getTotalLOAsByUser
 };

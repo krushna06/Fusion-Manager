@@ -3,6 +3,7 @@ import { handleTradeButton } from './buttons/tradeButton.js';
 import { handleStaffApplicationButton } from './buttons/staffApplicationButton.js';
 import { handleStaffAppDecisionButton } from './buttons/staffAppDecisionButton.js';
 import { handleStaffAppStepButton } from './buttons/staffAppStepButtons.js';
+import { handleLOAButton } from './buttons/loaButton.js';
 import { PermissionsBitField } from 'discord.js';
 import config from '../config.js';
 
@@ -42,6 +43,12 @@ export async function handleButtonInteraction(interaction) {
       return await handleStaffAppStepButton(interaction);
     }
     
+    if (interaction.customId.startsWith('loa_explain_') || 
+        interaction.customId.startsWith('loa_approve_') || 
+        interaction.customId.startsWith('loa_deny_')) {
+      return await handleLOAButton(interaction);
+    }
+    
     if (interaction.customId.startsWith('staff_onboarding_')) {
       await interaction.deferUpdate();
       
@@ -68,7 +75,7 @@ export async function handleButtonInteraction(interaction) {
           
           const botMember = await guild.members.fetch(interaction.client.user.id);
           const staffRoleIds = config.roles.mainServer.staffRole;
-          const staffMemberRole = await guild.roles.fetch(config.roles.staffServer.staffMemberRole).catch(() => null);
+          const staffMemberRoleIds = config.roles.staffServer.staffMemberRole;
           
           if (staffRoleIds && Array.isArray(staffRoleIds)) {
             for (const roleId of staffRoleIds) {
@@ -85,13 +92,18 @@ export async function handleButtonInteraction(interaction) {
             }
           }
           
-          if (staffMemberRole) {
-            if (staffMemberRole.position >= botMember.roles.highest.position) {
-              return interaction.editReply({ 
-                content: `❌ Cannot assign Staff Member role: Bot's role must be higher in the role hierarchy. Please move the bot's role above "${staffMemberRole.name}" in server settings.` 
-              });
+          const staffMemberRoles = Array.isArray(staffMemberRoleIds) ? staffMemberRoleIds : [staffMemberRoleIds];
+          for (const roleId of staffMemberRoles) {
+            if (roleId) {
+              const role = await guild.roles.fetch(roleId).catch(() => null);
+              if (role) {
+                if (role.position >= botMember.roles.highest.position) {
+                  console.error(`Cannot add staff member role ${role.name}: Bot's highest role is not above this role`);
+                  continue;
+                }
+                await member.roles.add(role);
+              }
             }
-            await member.roles.add(staffMemberRole);
           }
           
           const onboardingRole = await guild.roles.fetch(config.roles.staffServer.onboardingRole).catch(() => null);
