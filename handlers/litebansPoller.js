@@ -122,7 +122,7 @@ async function handleNewPunishment(punishment, type, client) {
   }
   
   if (punishment.banned_by_name === 'Console') {
-    console.log(`Ignoring ${type} ${litebansId} - caused by Console (anticheat/system)`);
+    // console.log(`Ignoring ${type} ${litebansId} - caused by Console (anticheat/system)`);
     return;
   }
   

@@ -31,7 +31,7 @@ export async function handleProofButton(interaction) {
   
   if (proofRequest.staff_id && proofRequest.staff_id !== interaction.user.id) {
     return interaction.reply({ 
-      content: 'Only the staff member who performed this action can attach proof.', 
+      content: 'This moderation action was not performed by you. Only the staff member who performed this action can attach proof.', 
       flags: 64 
     });
   }
