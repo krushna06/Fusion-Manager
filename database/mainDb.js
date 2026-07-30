@@ -130,6 +130,25 @@ async function initDatabase() {
     )
   `);
 
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS moderation_proof_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      litebans_id TEXT NOT NULL,
+      punishment_type TEXT NOT NULL,
+      player_name TEXT NOT NULL,
+      player_uuid TEXT,
+      staff_name TEXT NOT NULL,
+      staff_id TEXT,
+      reason TEXT,
+      message_id TEXT,
+      channel_id TEXT,
+      proof_url TEXT,
+      status TEXT DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   const loaPragma = await db.all(`PRAGMA table_info(loa_settings)`);
   if (loaPragma.some(col => col.name === 'manager_role_id') && !loaPragma.some(col => col.name === 'manager_role_ids')) {
     await db.exec(`ALTER TABLE loa_settings RENAME COLUMN manager_role_id TO manager_role_ids`);
@@ -537,6 +556,44 @@ async function getTotalLOAsByUser(userId, guildId) {
   return result.total || 0;
 }
 
+async function createModerationProofRequest(litebansId, punishmentType, playerName, playerUuid, staffName, staffId, reason, messageId, channelId) {
+  const db = await dbPromise;
+  const result = await db.run(
+    `INSERT INTO moderation_proof_requests 
+     (litebans_id, punishment_type, player_name, player_uuid, staff_name, staff_id, reason, message_id, channel_id) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [litebansId, punishmentType, playerName, playerUuid, staffName, staffId, reason, messageId, channelId]
+  );
+  return result.lastID;
+}
+
+async function getModerationProofRequestByLitebansId(litebansId) {
+  const db = await dbPromise;
+  return await db.get(
+    `SELECT * FROM moderation_proof_requests WHERE litebans_id = ?`,
+    [litebansId]
+  );
+}
+
+async function updateModerationProofRequest(id, proofUrl, status) {
+  const db = await dbPromise;
+  await db.run(
+    `UPDATE moderation_proof_requests 
+     SET proof_url = ?, status = ?, updated_at = CURRENT_TIMESTAMP 
+     WHERE id = ?`,
+    [proofUrl, status, id]
+  );
+  return await db.get(`SELECT * FROM moderation_proof_requests WHERE id = ?`, [id]);
+}
+
+async function getModerationProofRequestByMessageId(messageId) {
+  const db = await dbPromise;
+  return await db.get(
+    `SELECT * FROM moderation_proof_requests WHERE message_id = ?`,
+    [messageId]
+  );
+}
+
 export {
   dbPromise,
   initDatabase,
@@ -569,5 +626,10 @@ export {
   setLOAChannel,
   getLOASettings,
   getActiveLOAByUser,
-  getTotalLOAsByUser
+  getTotalLOAsByUser,
+  
+  createModerationProofRequest,
+  getModerationProofRequestByLitebansId,
+  updateModerationProofRequest,
+  getModerationProofRequestByMessageId
 };

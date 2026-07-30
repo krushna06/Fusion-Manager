@@ -5,12 +5,14 @@ import { handleStaffApplicationStep3 } from './modals/staffApplicationStep3.js';
 import { handleStaffApplicationStep4 } from './modals/staffApplicationStep4.js';
 import { handleStaffApplicationStep5 } from './modals/staffApplicationStep5.js';
 import { handleLOAExplanationModal } from './modals/loaExplanationModal.js';
+import { handleProofSubmission } from './buttons/proofButton.js';
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, PermissionsBitField } from 'discord.js';
 import config from '../config.js';
 
 const applicationData = new Map();
+const proofRequestData = new Map();
 
-export { applicationData };
+export { applicationData, proofRequestData };
 
 export async function handleModalSubmit(interaction) {
   if (!interaction.isModalSubmit()) {
@@ -176,6 +178,19 @@ export async function handleModalSubmit(interaction) {
     
     if (interaction.customId.startsWith('loa_explanation_')) {
       return await handleLOAExplanationModal(interaction);
+    }
+    
+    if (interaction.customId === 'proof_modal') {
+      const proofRequest = proofRequestData.get(interaction.user.id);
+      if (!proofRequest) {
+        return interaction.reply({ 
+          content: 'Error: Could not find proof request. Please try again.', 
+          flags: 64 
+        });
+      }
+      
+      proofRequestData.delete(interaction.user.id);
+      return await handleProofSubmission(interaction, proofRequest);
     }
     
     console.log('No handler found for modal:', interaction.customId);

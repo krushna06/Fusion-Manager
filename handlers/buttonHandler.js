@@ -4,6 +4,7 @@ import { handleStaffApplicationButton } from './buttons/staffApplicationButton.j
 import { handleStaffAppDecisionButton } from './buttons/staffAppDecisionButton.js';
 import { handleStaffAppStepButton } from './buttons/staffAppStepButtons.js';
 import { handleLOAButton } from './buttons/loaButton.js';
+import { handleProofButton } from './buttons/proofButton.js';
 import { PermissionsBitField } from 'discord.js';
 import config from '../config.js';
 
@@ -47,6 +48,10 @@ export async function handleButtonInteraction(interaction) {
         interaction.customId.startsWith('loa_approve_') || 
         interaction.customId.startsWith('loa_deny_')) {
       return await handleLOAButton(interaction);
+    }
+    
+    if (interaction.customId.startsWith('attach_proof_')) {
+      return await handleProofButton(interaction);
     }
     
     if (interaction.customId.startsWith('staff_onboarding_')) {
