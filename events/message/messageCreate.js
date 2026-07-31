@@ -4,6 +4,7 @@ import { getLOASettings } from '../../database/mainDb.js';
 import { handleBugReport } from './bug/bugCreate.js';
 import { handleSuggestion } from './suggestion/suggestionCreate.js';
 import { handleTradeRequest } from './trade/tradeCreate.js';
+import { handleStaffApplicationMessage } from './staffApplication/staffAppMessageCreate.js';
 import config from '../../config.js';
 
 export default {
@@ -25,6 +26,10 @@ export default {
       if (loaSettings && message.channel.id === loaSettings.loa_channel_id) {
         await message.delete().catch(console.error);
         return;
+      }
+      
+      if (message.channel.name && message.channel.name.startsWith('staff-app-')) {
+        await handleStaffApplicationMessage(message);
       }
       
       if (message.channel.id === reportChannelId) {

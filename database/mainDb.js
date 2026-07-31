@@ -185,6 +185,12 @@ async function initDatabase() {
   if (!pragma.some(col => col.name === 'rejected_at')) {
     await db.exec(`ALTER TABLE staff_applications ADD COLUMN rejected_at TIMESTAMP`);
   }
+  if (!pragma.some(col => col.name === 'current_question_step')) {
+    await db.exec(`ALTER TABLE staff_applications ADD COLUMN current_question_step INTEGER DEFAULT 0`);
+  }
+  if (!pragma.some(col => col.name === 'application_state')) {
+    await db.exec(`ALTER TABLE staff_applications ADD COLUMN application_state TEXT DEFAULT 'collecting'`);
+  }
   
   const managerIdCol = pragma.find(col => col.name === 'manager_id');
   const channelIdCol = pragma.find(col => col.name === 'channel_id');
@@ -205,14 +211,16 @@ async function initDatabase() {
         status TEXT DEFAULT 'pending',
         setup_message_id TEXT,
         setup_channel_id TEXT,
-        rejected_at TIMESTAMP
+        rejected_at TIMESTAMP,
+        current_question_step INTEGER DEFAULT 0,
+        application_state TEXT DEFAULT 'collecting'
       )
     `);
     
     await db.exec(`
       INSERT INTO staff_applications_new 
-      (id, channel_id, staff_id, manager_id, created_at, additional_users, minecraft_username, responses, status, setup_message_id, setup_channel_id, rejected_at)
-      SELECT id, channel_id, staff_id, manager_id, created_at, additional_users, minecraft_username, responses, status, setup_message_id, setup_channel_id, rejected_at
+      (id, channel_id, staff_id, manager_id, created_at, additional_users, minecraft_username, responses, status, setup_message_id, setup_channel_id, rejected_at, current_question_step, application_state)
+      SELECT id, channel_id, staff_id, manager_id, created_at, additional_users, minecraft_username, responses, status, setup_message_id, setup_channel_id, rejected_at, 0, 'collecting'
       FROM staff_applications
     `);
     
@@ -414,6 +422,30 @@ async function updateStaffApplicationStatus(channelId, status) {
   }
 }
 
+async function updateApplicationQuestionStep(channelId, step) {
+  const db = await dbPromise;
+  await db.run(
+    `UPDATE staff_applications SET current_question_step = ? WHERE channel_id = ?`,
+    [step, channelId]
+  );
+}
+
+async function updateApplicationState(channelId, state) {
+  const db = await dbPromise;
+  await db.run(
+    `UPDATE staff_applications SET application_state = ? WHERE channel_id = ?`,
+    [state, channelId]
+  );
+}
+
+async function updateApplicationResponses(channelId, responses) {
+  const db = await dbPromise;
+  await db.run(
+    `UPDATE staff_applications SET responses = ? WHERE channel_id = ?`,
+    [JSON.stringify(responses), channelId]
+  );
+}
+
 async function saveStaffAppSetup(messageId, channelId) {
   const db = await dbPromise;
   
@@ -613,6 +645,9 @@ export {
   createStaffApplication,
   getStaffApplicationByUser,
   updateStaffApplicationStatus,
+  updateApplicationQuestionStep,
+  updateApplicationState,
+  updateApplicationResponses,
   saveStaffAppSetup,
   getStaffAppSetup,
   

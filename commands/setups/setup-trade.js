@@ -16,6 +16,8 @@ export default {
     ),
 
   async execute(interaction) {
+    await interaction.deferReply({ flags: 64 });
+    
     let hasPermission = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) ||
                         interaction.member.permissions.has(PermissionsBitField.Flags.ManageChannels);
     
@@ -34,9 +36,8 @@ export default {
     }
     
     if (!hasPermission) {
-      return interaction.reply({ 
-        content: 'You do not have permission to set up the trade system.', 
-        ephemeral: true 
+      return interaction.editReply({ 
+        content: 'You do not have permission to set up the trade system.' 
       });
     }
     
@@ -85,15 +86,13 @@ export default {
       });
       
       success(`Trade channel set to ${channel.name} in guild ${interaction.guild.name}`);
-      return interaction.reply({
-        content: `Trade channel has been set up: ${channel}`,
-        ephemeral: true
+      return interaction.editReply({
+        content: `Trade channel has been set up: ${channel}`
       });
     } catch (err) {
       error('Error setting up trade channel', err);
-      return interaction.reply({
-        content: `Failed to set up trade system: ${err.message}`,
-        ephemeral: true
+      return interaction.editReply({
+        content: `Failed to set up trade system: ${err.message}`
       });
     }
   }

@@ -8,6 +8,8 @@ export default {
     .setName('setup-staffapps')
     .setDescription('Setup the staff application embed with apply button'),
   async execute(interaction) {
+    await interaction.deferReply({ flags: 64 });
+    
     let hasPermission = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator);
     
     if (!hasPermission && config.roles.mainServer.staffManagerRole && config.channels.mainServer.guildId) {
@@ -25,7 +27,7 @@ export default {
     }
     
     if (!hasPermission) {
-      return interaction.reply({ content: 'You do not have permission to use this command.', flags: 64 });
+      return interaction.editReply({ content: 'You do not have permission to use this command.' });
     }
 
     const embed = new EmbedBuilder()
@@ -40,8 +42,6 @@ export default {
           .setLabel('Apply')
           .setStyle(ButtonStyle.Primary)
       );
-
-    await interaction.deferReply({ flags: 64 });
     
     const message = await interaction.channel.send({
       embeds: [embed],

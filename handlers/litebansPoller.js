@@ -181,7 +181,7 @@ async function handleNewPunishment(punishment, type, client) {
       channel.id
     );
     
-    console.log(`Created proof request for ${type} ${litebansId}`);
+    // console.log(`Created proof request for ${type} ${litebansId}`);
   } catch (error) {
     console.error('Error creating proof request:', error);
   }
@@ -196,7 +196,7 @@ export async function initLitebansPoller(client) {
   lastKickId = latestIds.kick;
   lastWarningId = latestIds.warning;
   
-  console.log(`Starting from IDs - Ban: ${lastBanId}, Mute: ${lastMuteId}, Kick: ${lastKickId}, Warning: ${lastWarningId}`);
+  // console.log(`Starting from IDs - Ban: ${lastBanId}, Mute: ${lastMuteId}, Kick: ${lastKickId}, Warning: ${lastWarningId}`);
   
   setInterval(async () => {
     try {

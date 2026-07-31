@@ -60,7 +60,7 @@ export async function handleStaffAppDecisionButton(interaction) {
   if (action === 'bgcheck') {
     await interaction.deferReply({ flags: 64 });
   } else {
-    await interaction.deferReply();
+    await interaction.deferReply({ flags: 64 });
   }
 
   try {
@@ -69,11 +69,6 @@ export async function handleStaffAppDecisionButton(interaction) {
       
       const application = await getStaffApplicationByChannel(channelId);
       if (application && application.staff_id) {
-        const member = await interaction.guild.members.fetch(application.staff_id).catch(() => null);
-        if (member && config.roles.mainServer.trialStaffRole) {
-          await member.roles.add(config.roles.mainServer.trialStaffRole).catch(console.error);
-        }
-        
         const channel = await interaction.guild.channels.fetch(channelId).catch(() => null);
         if (channel) {
           await channel.permissionOverwrites.edit(application.staff_id, {
@@ -83,30 +78,18 @@ export async function handleStaffAppDecisionButton(interaction) {
         }
         
         try {
-          const staffGuild = await interaction.client.guilds.fetch(config.channels.staffServer.guildId).catch(() => null);
-          if (staffGuild) {
-            const invite = await staffGuild.invites.create(config.channels.staffServer.playerReportsChannelId || staffGuild.rulesChannelId || staffGuild.systemChannelId, {
-              maxUses: 1,
-              maxAge: 86400,
-              unique: true,
-              reason: `Staff application accepted for user ${application.staff_id}`
+          const user = await interaction.client.users.fetch(application.staff_id).catch(() => null);
+          if (user) {
+            await user.send({
+              content: `🎉 **Congratulations!** Your staff application has been **shortlisted**! The staff team will review your application further and reach out to you with next steps.`
             }).catch(console.error);
-            
-            if (invite) {
-              const user = await interaction.client.users.fetch(application.staff_id).catch(() => null);
-              if (user) {
-                await user.send({
-                  content: `Congratulations! Your staff application has been accepted. Please join the staff server using this invite link: ${invite.url}`
-                }).catch(console.error);
-              }
-            }
           }
-        } catch (err) {
-          console.error('Error generating invite or sending DM to accepted staff:', err);
+        } catch (dmError) {
+          console.error('Error sending DM to user:', dmError);
         }
       }
       
-      await interaction.editReply({ content: 'Application accepted! The user has been notified and given the trial staff role.' });
+      await interaction.editReply({ content: 'Application accepted.' });
       
       const row = new ActionRowBuilder()
         .addComponents(
@@ -117,7 +100,7 @@ export async function handleStaffAppDecisionButton(interaction) {
         );
       
       await interaction.channel.send({
-        content: `🎉 **Congratulations!** Your staff application has been **accepted**! A staff member will reach out to you shortly with next steps.`,
+        content: `<@${application.staff_id}> Congratulations! Your staff application has been shortlisted! The staff team will review your application further and reach out to you with next steps.`,
         components: [row]
       });
 
@@ -148,6 +131,15 @@ export async function handleStaffAppDecisionButton(interaction) {
       } catch (err) {
         console.error('Error fetching link from database:', err);
       }
+      
+      if (!minecraftUsername && application?.responses) {
+        try {
+          const responses = JSON.parse(application.responses);
+          minecraftUsername = responses.ign || responses.minecraft_username;
+        } catch (e) {
+          console.error('Error parsing responses for username:', e);
+        }
+      }
 
       const embed = new EmbedBuilder()
         .setTitle(`🔍 Background Check: ${targetUser.tag}`)
@@ -157,7 +149,7 @@ export async function handleStaffAppDecisionButton(interaction) {
           { name: '**👤 Discord Info**', value: '\u200b', inline: false },
           { name: 'User ID', value: targetUser.id, inline: true },
           { name: 'Account Created', value: `<t:${Math.floor(targetUser.createdTimestamp / 1000)}:R>`, inline: true },
-          { name: 'Minecraft Username', value: minecraftUsername || application.minecraft_username || 'Not linked', inline: true }
+          { name: 'Minecraft Username', value: minecraftUsername || 'Not linked', inline: true }
         );
 
       if (minecraftUsername) {
@@ -271,7 +263,21 @@ export async function handleStaffAppDecisionButton(interaction) {
     } else if (action === 'reject') {
       await updateStaffApplicationStatus(channelId, 'rejected');
       
-      await interaction.editReply({ content: 'Application rejected. The user will be notified.' });
+      const application = await getStaffApplicationByChannel(channelId);
+      if (application && application.staff_id) {
+        try {
+          const user = await interaction.client.users.fetch(application.staff_id).catch(() => null);
+          if (user) {
+            await user.send({
+              content: `❌ **Application Rejected**. Unfortunately, your staff application has been declined at this time. You may apply again in 30 days. Thank you for your interest!`
+            }).catch(console.error);
+          }
+        } catch (dmError) {
+          console.error('Error sending DM to user:', dmError);
+        }
+      }
+      
+      await interaction.editReply({ content: 'Application rejected.' });
       
       const row = new ActionRowBuilder()
         .addComponents(
@@ -282,7 +288,7 @@ export async function handleStaffAppDecisionButton(interaction) {
         );
       
       await interaction.channel.send({
-        content: `❌ **Application Rejected**. Unfortunately, your staff application has been declined at this time. You may apply again in 30 days. Thank you for your interest!`,
+        content: `<@${application.staff_id}> Unfortunately, your staff application has been declined at this time. You may apply again in 30 days. Thank you for your interest!`,
         components: [row]
       });
 
@@ -296,14 +302,24 @@ export async function handleStaffAppDecisionButton(interaction) {
       
       const application = await getStaffApplicationByChannel(channelId);
       
+      let username = 'unknown';
+      if (application?.responses) {
+        try {
+          const responses = JSON.parse(application.responses);
+          username = responses.ign || responses.minecraft_username || 'unknown';
+        } catch (e) {
+          console.error('Error parsing responses for username:', e);
+        }
+      }
+      
       const messages = await interaction.channel.messages.fetch();
       const transcriptBuffer = await generateFromMessages(messages, interaction.channel, {
         returnType: 'buffer',
-        filename: `staff-app-${application?.minecraft_username || 'unknown'}.html`
+        filename: `staff-app-${application?.minecraft_username || username}.html`
       });
       
       const transcriptAttachment = new AttachmentBuilder(transcriptBuffer, {
-        name: `staff-app-${application?.minecraft_username || 'unknown'}.html`
+        name: `staff-app-${username}.html`
       });
       
       const createdAt = application?.created_at ? new Date(application.created_at) : new Date();
@@ -330,7 +346,7 @@ export async function handleStaffAppDecisionButton(interaction) {
         .setTitle('Application Closed')
         .setColor(0x5865F2)
         .addFields(
-          { name: 'Topic', value: application?.minecraft_username || 'Unknown', inline: true },
+          { name: 'Topic', value: username, inline: true },
           { name: 'Created at', value: formatDate(createdAt), inline: true },
           { name: 'Closed at', value: formatDate(closedAt), inline: true },
           { name: '\u200b', value: `(after ${daysDiff} days)`, inline: true },

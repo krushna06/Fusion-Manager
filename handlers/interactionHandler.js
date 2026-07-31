@@ -24,13 +24,21 @@ export async function handleInteraction(client, interaction) {
     console.error(`Error executing command ${interaction.commandName}:`, error);
     const errorMessage = { 
       content: 'There was an error executing this command!', 
-      ephemeral: true 
+      flags: 64 
     };
     
     if (interaction.replied || interaction.deferred) {
-      await interaction.followUp(errorMessage);
+      try {
+        await interaction.followUp(errorMessage);
+      } catch (followUpError) {
+        console.error('Error sending follow-up error message:', followUpError);
+      }
     } else {
-      await interaction.reply(errorMessage);
+      try {
+        await interaction.reply(errorMessage);
+      } catch (replyError) {
+        console.error('Error sending error reply:', replyError);
+      }
     }
   }
 }

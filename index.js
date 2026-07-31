@@ -3,7 +3,7 @@ import config from './config.js';
 import { loadCommands } from './handlers/commandHandler.js';
 import { loadEvents } from './handlers/eventHandler.js';
 import { initDatabase } from './database/mainDb.js';
-import { info, error, success, startupTable } from './utils/logger.js';
+import { info, error as logError, success, startupTable } from './utils/logger.js';
 import { LinkerDb } from './database/linkerDb.js';
 import { LinkerReconciler } from './handlers/linkerReconciler.js';
 import { loadConfig } from './utils/linkerConfig.js';
@@ -36,39 +36,39 @@ async function init() {
           await linkerDb.ensureSchema();
           break;
         } catch (error) {
-          error('Database not ready, retrying in 5s...', error);
+          logError('Database not ready, retrying in 5s...', error);
           await new Promise((resolve) => setTimeout(resolve, 5000));
         }
       }
       
       linkerReconciler = new LinkerReconciler(client, linkerDb, linkerConfig);
     } catch (linkerErr) {
-      error('Error initializing linker components', linkerErr);
+      logError('Error initializing linker components', linkerErr);
       throw linkerErr;
     }
     
     try {
       await loadCommands(client, linkerDb, linkerReconciler);
     } catch (cmdErr) {
-      error('Error loading commands', cmdErr);
+      logError('Error loading commands', cmdErr);
       throw cmdErr;
     }
     
     try {
       await loadEvents(client, linkerReconciler);
     } catch (evtErr) {
-      error('Error loading events', evtErr);
+      logError('Error loading events', evtErr);
       throw evtErr;
     }
     
     try {
       await client.login(config.TOKEN);
     } catch (loginErr) {
-      error('Error logging in to Discord', loginErr);
+      logError('Error logging in to Discord', loginErr);
       throw loginErr;
     }
   } catch (err) {
-    error('Error during bot initialization', err);
+    logError('Error during bot initialization', err);
     process.exit(1);
   }
 }
@@ -79,15 +79,15 @@ client.once('ready', async () => {
   try {
     const guild = await client.guilds.fetch(linkerConfig.guildId).catch(() => null);
     if (!guild) {
-      error(`Linker guild ${linkerConfig.guildId} not found, invite the bot and restart`);
+      logError(`Linker guild ${linkerConfig.guildId} not found, invite the bot and restart`);
       return;
     }
     
     const role = await guild.roles.fetch(linkerConfig.donatorRoleId).catch(() => null);
     if (!role) {
-      error(`Linker donator role ${linkerConfig.donatorRoleId} not found in guild ${guild.name}`);
+      logError(`Linker donator role ${linkerConfig.donatorRoleId} not found in guild ${guild.name}`);
     } else if (guild.members.me && guild.members.me.roles.highest.comparePositionTo(role) <= 0) {
-      error("The bot's highest role must be ABOVE the donator role to manage it");
+      logError("The bot's highest role must be ABOVE the donator role to manage it");
     }
     
     await linkerReconciler.fullSweep();
@@ -109,13 +109,13 @@ client.once('ready', async () => {
           
           try {
             await linkerReconciler.reconcilePair(row.uuid, row.discord_id);
-          } catch (error) {
-            error(`reconcile failed for dirty row ${row.id}`, error);
+          } catch (err) {
+            console.error(`reconcile failed for dirty row ${row.id}`, err);
           }
         }
         await linkerDb.deleteDirty(rows.map((row) => row.id));
-      } catch (error) {
-        error("dirty poll failed", error);
+      } catch (err) {
+        console.error("dirty poll failed", err);
       }
     }, linkerConfig.dirtyPollSeconds * 1000);
     
@@ -124,8 +124,8 @@ client.once('ready', async () => {
       
       try {
         await linkerReconciler.fullSweep();
-      } catch (error) {
-        error("sweep failed", error);
+      } catch (err) {
+        console.error("sweep failed", err);
       }
     }, linkerConfig.sweepMinutes * 60000);
     
@@ -150,7 +150,7 @@ client.once('ready', async () => {
       'Status': 'Ready'
     });
   } catch (error) {
-    error('Error in linker ready handler', error);
+    logError('Error in linker ready handler', error);
   }
 });
 

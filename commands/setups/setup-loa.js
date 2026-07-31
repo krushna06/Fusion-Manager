@@ -36,6 +36,8 @@ export default {
         .addChannelTypes(ChannelType.GuildText)
     ),
   async execute(interaction) {
+    await interaction.deferReply({ flags: 64 });
+    
     let hasPermission = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) ||
                         interaction.member.permissions.has(PermissionsBitField.Flags.ManageChannels);
     
@@ -54,9 +56,8 @@ export default {
     }
     
     if (!hasPermission) {
-      return interaction.reply({ 
-        content: 'You do not have permission to set up the LOA system.', 
-        ephemeral: true 
+      return interaction.editReply({ 
+        content: 'You do not have permission to set up the LOA system.' 
       });
     }
     
@@ -110,15 +111,13 @@ export default {
         ? ` with manager roles: ${managerRoleIds.map(id => `<@&${id}>`).join(', ')}` 
         : '';
       const logText = logChannel ? ` with log channel: ${logChannel}` : '';
-      return interaction.reply({
-        content: `LOA system has been set up: ${channel}${rolesText}${logText}`,
-        ephemeral: true
+      return interaction.editReply({
+        content: `LOA system has been set up: ${channel}${rolesText}${logText}`
       });
     } catch (err) {
       error('Error setting up LOA channel', err);
-      return interaction.reply({
-        content: `Failed to set up LOA system: ${err.message}`,
-        ephemeral: true
+      return interaction.editReply({
+        content: `Failed to set up LOA system: ${err.message}`
       });
     }
   }

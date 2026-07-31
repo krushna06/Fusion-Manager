@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, PermissionsBitField } from 'discord.js';
 import { updateStaffApplicationStatus } from '../../database/mainDb.js';
 import config from '../../config.js';
 
@@ -9,27 +9,43 @@ export default {
     .setDescription('Close this staff application channel'),
   async execute(interaction) {
     try {
+      try {
+        if (!interaction.deferred && !interaction.replied) {
+          await interaction.deferReply();
+        }
+      } catch (deferErr) {
+        console.error('Error deferring interaction:', deferErr);
+      }
+      
       if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) &&
           !interaction.member.roles.cache.has(config.roles.mainServer.staffManagerRole)) {
-        return interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
+        return interaction.editReply({ content: 'You do not have permission to use this command.' });
       }
       const channel = interaction.channel;
       if (!channel.name.startsWith('staff-app-')) {
-        return interaction.reply({ content: 'This command can only be used in staff application channels.', ephemeral: true });
+        return interaction.editReply({ content: 'This command can only be used in staff application channels.' });
       }
       
       await updateStaffApplicationStatus(channel.id, 'closed');
       
-      await interaction.reply({ content: 'This staff application channel will be closed in 5 seconds.', ephemeral: false });
+      await interaction.editReply({ content: 'This staff application channel will be closed in 5 seconds.' });
       setTimeout(async () => {
         await channel.delete('Staff application closed by manager');
       }, 5000);
     } catch (err) {
       console.error('Error in /close:', err);
       if (interaction.deferred || interaction.replied) {
-        await interaction.editReply({ content: 'An error occurred while closing the channel.' });
+        try {
+          await interaction.editReply({ content: 'An error occurred while closing the channel.' });
+        } catch (editError) {
+          console.error('Error editing error reply:', editError);
+        }
       } else {
-        await interaction.reply({ content: 'An error occurred while closing the channel.', ephemeral: true });
+        try {
+          await interaction.reply({ content: 'An error occurred while closing the channel.', flags: 64 });
+        } catch (replyError) {
+          console.error('Error sending error reply:', replyError);
+        }
       }
     }
   }

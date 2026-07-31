@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField } from 'discord.js';
-import { createStaffApplication, getStaffApplicationByUser } from '../../database/mainDb.js';
+import { createStaffApplication, getStaffApplicationByUser, updateApplicationState } from '../../database/mainDb.js';
 import config from '../../config.js';
 
 export default {
@@ -140,6 +140,13 @@ export default {
     };
 
     await createStaffApplication(channel.id, targetUser.id, targetUser.username, responses);
+    await updateApplicationState(channel.id, 'submitted');
+
+    const embed = new EmbedBuilder()
+      .setTitle('Staff Application Created')
+      .setColor(0x5865F2)
+      .setDescription(`<@${targetUser.id}> Your staff application has been created. This application was manually created by <@${interaction.user.id}>. The staff team will review it and get back to you soon.`)
+      .setTimestamp();
 
     const row = new ActionRowBuilder()
       .addComponents(
@@ -158,7 +165,8 @@ export default {
       );
 
     await channel.send({
-      content: `**Staff Application - ${targetUser.tag}**\n\nThis application was manually created by <@${interaction.user.id}>.\n\n<@${targetUser.id}> Your staff application has been created. The staff team will review it and get back to you soon.`,
+      content: `**Staff Application - ${targetUser.tag}**`,
+      embeds: [embed],
       components: [row]
     });
 
