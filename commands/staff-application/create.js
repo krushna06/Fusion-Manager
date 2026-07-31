@@ -145,7 +145,7 @@ export default {
     const embed = new EmbedBuilder()
       .setTitle('Staff Application Created')
       .setColor(0x5865F2)
-      .setDescription(`<@${targetUser.id}> Your staff application has been created. This application was manually created by <@${interaction.user.id}>. The staff team will review it and get back to you soon.`)
+      .setDescription(`Your staff application has been created. This application was manually created by <@${interaction.user.id}>. The staff team will review it and get back to you soon.`)
       .setTimestamp();
 
     const row = new ActionRowBuilder()

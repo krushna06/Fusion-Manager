@@ -108,5 +108,35 @@ export const staffApplicationQuestions = [
     id: 'why_accept',
     label: 'Why should we accept you over others?',
     type: 'text'
+  },
+  {
+    id: 'kill_aura_scenario',
+    label: 'You witness a popular player using kill-aura in PvP. No active report exists. Detail step-by-step actions from noticing to resolution.',
+    type: 'text'
+  },
+  {
+    id: 'toxic_chat_scenario',
+    label: 'Two players are in a toxic argument in general chat, derailing conversation. Describe your strategy and commands to restore order.',
+    type: 'text'
+  },
+  {
+    id: 'refund_scenario',
+    label: 'A frustrated player claims items lost to a bug and demands refund. How do you handle this while upholding policy?',
+    type: 'text'
+  },
+  {
+    id: 'friend_rule_violation',
+    label: 'A friend asks you to overlook a minor rule violation. How do you respond and what principles guide your decision?',
+    type: 'text'
+  },
+  {
+    id: 'specific_motivation',
+    label: 'Beyond "helping the server", what is your specific motivation? What unique skills make you valuable over others?',
+    type: 'text'
+  },
+  {
+    id: 'time_commitment',
+    label: 'Staff requires 4+ hours daily in-game/Discord. Describe your weekly availability and how you balance with real-life commitments.',
+    type: 'text'
   }
 ];

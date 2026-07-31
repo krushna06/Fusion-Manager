@@ -406,6 +406,21 @@ async function getStaffApplicationByUser(userId) {
   );
 }
 
+async function getAllStaffApplications() {
+  const db = await dbPromise;
+  return await db.all(
+    `SELECT * FROM staff_applications WHERE status = 'pending' OR status = 'accepted' ORDER BY created_at DESC`
+  );
+}
+
+async function getStaffApplicationById(id) {
+  const db = await dbPromise;
+  return await db.get(
+    `SELECT * FROM staff_applications WHERE id = ?`,
+    [id]
+  );
+}
+
 async function updateStaffApplicationStatus(channelId, status) {
   const db = await dbPromise;
   
@@ -644,6 +659,8 @@ export {
   removeAdditionalUserFromStaffApplication,
   createStaffApplication,
   getStaffApplicationByUser,
+  getAllStaffApplications,
+  getStaffApplicationById,
   updateStaffApplicationStatus,
   updateApplicationQuestionStep,
   updateApplicationState,

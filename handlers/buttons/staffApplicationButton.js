@@ -143,7 +143,7 @@ export async function handleStaffApplicationButton(interaction) {
     const embed = new EmbedBuilder()
       .setTitle('Staff Application Created')
       .setColor(0x5865F2)
-      .setDescription(`<@${interaction.user.id}> Your staff application has been created. To continue with the application, please answer the following questions.`)
+      .setDescription(`Your staff application has been created. To continue with the application, please answer the following questions.`)
       .setTimestamp();
 
     const row = new ActionRowBuilder()

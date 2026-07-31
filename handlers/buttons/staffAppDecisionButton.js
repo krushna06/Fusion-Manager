@@ -1,4 +1,4 @@
-import { updateStaffApplicationStatus, getStaffApplicationByChannel } from '../../database/mainDb.js';
+import { updateStaffApplicationStatus, getStaffApplicationByChannel, getStaffApplicationById } from '../../database/mainDb.js';
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, AttachmentBuilder, PermissionsBitField } from 'discord.js';
 import { generateFromMessages } from 'discord-html-transcripts';
 import config from '../../config.js';
@@ -303,6 +303,8 @@ export async function handleStaffAppDecisionButton(interaction) {
       const application = await getStaffApplicationByChannel(channelId);
       
       let username = 'unknown';
+      let applicationId = application?.id || 'unknown';
+      
       if (application?.responses) {
         try {
           const responses = JSON.parse(application.responses);
@@ -315,11 +317,11 @@ export async function handleStaffAppDecisionButton(interaction) {
       const messages = await interaction.channel.messages.fetch();
       const transcriptBuffer = await generateFromMessages(messages, interaction.channel, {
         returnType: 'buffer',
-        filename: `staff-app-${application?.minecraft_username || username}.html`
+        filename: `staff-app-${applicationId}-${username}.html`
       });
       
       const transcriptAttachment = new AttachmentBuilder(transcriptBuffer, {
-        name: `staff-app-${username}.html`
+        name: `staff-app-${applicationId}-${username}.html`
       });
       
       const createdAt = application?.created_at ? new Date(application.created_at) : new Date();
@@ -346,6 +348,7 @@ export async function handleStaffAppDecisionButton(interaction) {
         .setTitle('Application Closed')
         .setColor(0x5865F2)
         .addFields(
+          { name: 'Application ID', value: `#${applicationId}`, inline: true },
           { name: 'Topic', value: username, inline: true },
           { name: 'Created at', value: formatDate(createdAt), inline: true },
           { name: 'Closed at', value: formatDate(closedAt), inline: true },

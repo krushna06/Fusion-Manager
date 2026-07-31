@@ -249,9 +249,15 @@ export async function handleStaffApplicationMessage(message) {
 }
 
 function generateApplicationEmbed(responses, user) {
-  const basicInfoQuestions = staffApplicationQuestions.slice(0, 11); // First 11 questions
-  const timeAccountsQuestions = staffApplicationQuestions.slice(11, 17); // Next 6 questions
-  const aboutYouQuestions = staffApplicationQuestions.slice(17); // Remaining questions
+  const basicInfoQuestions = staffApplicationQuestions.slice(0, 10);
+  const timeAccountsQuestions = staffApplicationQuestions.slice(10, 16);
+  const experienceAboutQuestions = staffApplicationQuestions.slice(16, 22);
+  const scenarioQuestions = staffApplicationQuestions.slice(22);
+  
+  const truncateFieldName = (name) => {
+    if (name.length <= 256) return name;
+    return name.substring(0, 253) + '...';
+  };
   
   const embed1 = new EmbedBuilder()
     .setTitle(`Staff Application - ${responses.ign || user.username}`)
@@ -259,7 +265,7 @@ function generateApplicationEmbed(responses, user) {
     .addFields(
       { name: 'Discord User', value: `<@${user.id}>`, inline: false },
       ...basicInfoQuestions.map(q => ({
-        name: q.label,
+        name: truncateFieldName(q.label),
         value: q.id === 'ign' ? (responses.ign || responses.minecraft_username || 'Not provided') : (responses[q.id] || 'Not provided'),
         inline: false
       }))
@@ -271,22 +277,33 @@ function generateApplicationEmbed(responses, user) {
     .setColor(0x5865F2)
     .addFields(
       ...timeAccountsQuestions.map(q => ({
-        name: q.label,
+        name: truncateFieldName(q.label),
         value: responses[q.id] || 'Not provided',
         inline: false
       }))
     );
 
   const embed3 = new EmbedBuilder()
-    .setTitle('Staff Application - About You')
+    .setTitle('Staff Application - Experience & About You')
     .setColor(0x5865F2)
     .addFields(
-      ...aboutYouQuestions.map(q => ({
-        name: q.label,
+      ...experienceAboutQuestions.map(q => ({
+        name: truncateFieldName(q.label),
         value: responses[q.id] || 'Not provided',
         inline: false
       }))
     );
 
-  return [embed1, embed2, embed3];
+  const embed4 = new EmbedBuilder()
+    .setTitle('Staff Application - Scenarios & Commitment')
+    .setColor(0x5865F2)
+    .addFields(
+      ...scenarioQuestions.map(q => ({
+        name: truncateFieldName(q.label),
+        value: responses[q.id] || 'Not provided',
+        inline: false
+      }))
+    );
+
+  return [embed1, embed2, embed3, embed4];
 }
