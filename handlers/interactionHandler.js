@@ -22,6 +22,12 @@ export async function handleInteraction(client, interaction) {
     await command.execute(interaction);
   } catch (error) {
     console.error(`Error executing command ${interaction.commandName}:`, error);
+    
+    if (error.code === 10062) {
+      console.log('Interaction has expired, cannot send error response');
+      return;
+    }
+    
     const errorMessage = { 
       content: 'There was an error executing this command!', 
       flags: 64 
@@ -31,13 +37,17 @@ export async function handleInteraction(client, interaction) {
       try {
         await interaction.followUp(errorMessage);
       } catch (followUpError) {
-        console.error('Error sending follow-up error message:', followUpError);
+        if (followUpError.code !== 10062) {
+          console.error('Error sending follow-up error message:', followUpError);
+        }
       }
     } else {
       try {
         await interaction.reply(errorMessage);
       } catch (replyError) {
-        console.error('Error sending error reply:', replyError);
+        if (replyError.code !== 10062) {
+          console.error('Error sending error reply:', replyError);
+        }
       }
     }
   }

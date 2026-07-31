@@ -41,19 +41,24 @@ export default {
         .setDescription('Proof link (YouTube, Imgur, postimages.org, or postimg.cc)')
         .setRequired(true)),
   async execute(interaction) {
+    try {
+      await interaction.deferReply({ flags: 64 });
+    } catch (deferError) {
+      console.error('Error deferring reply:', deferError);
+      return;
+    }
+    
     const guild = await interaction.client.guilds.fetch(config.channels.staffServer.guildId).catch(() => null);
     if (!guild) {
-      return interaction.reply({ 
-        content: 'Staff server not found. Please contact an administrator.', 
-        flags: 64 
+      return interaction.editReply({ 
+        content: 'Staff server not found. Please contact an administrator.' 
       });
     }
     
     const member = await guild.members.fetch(interaction.user.id).catch(() => null);
     if (!member) {
-      return interaction.reply({ 
-        content: 'You must be a member of the staff server to use this command.', 
-        flags: 64 
+      return interaction.editReply({ 
+        content: 'You must be a member of the staff server to use this command.' 
       });
     }
     
@@ -65,9 +70,8 @@ export default {
     const isValidDomain = allowedDomains.some(domain => proof.toLowerCase().includes(domain));
     
     if (!isValidDomain) {
-      return interaction.reply({ 
-        content: 'Invalid proof link. Only YouTube, Imgur, postimages.org, and postimg.cc links are allowed.', 
-        flags: 64 
+      return interaction.editReply({ 
+        content: 'Invalid proof link. Only YouTube, Imgur, postimages.org, and postimg.cc links are allowed.' 
       });
     }
     
@@ -88,23 +92,24 @@ export default {
     try {
       const reportChannel = await interaction.client.channels.fetch(config.channels.staffServer.playerReportsChannelId).catch(() => null);
       if (!reportChannel) {
-        return interaction.reply({ 
-          content: 'Error: Player reports channel not found. Please contact an administrator.', 
-          flags: 64 
+        return interaction.editReply({ 
+          content: 'Error: Player reports channel not found. Please contact an administrator.' 
         });
       }
       
       await reportChannel.send({ embeds: [embed] });
-      await interaction.reply({ 
-        content: '✅ Player report submitted successfully!', 
-        flags: 64 
+      await interaction.editReply({ 
+        content: '✅ Player report submitted successfully!' 
       });
     } catch (error) {
       console.error('Error submitting player report:', error);
-      await interaction.reply({ 
-        content: 'An error occurred while submitting the report. Please try again later.', 
-        flags: 64 
-      });
+      try {
+        await interaction.editReply({ 
+          content: 'An error occurred while submitting the report. Please try again later.' 
+        });
+      } catch (editError) {
+        console.error('Error editing reply:', editError);
+      }
     }
   }
 };

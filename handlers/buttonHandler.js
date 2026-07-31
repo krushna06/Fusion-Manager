@@ -178,6 +178,12 @@ export async function handleButtonInteraction(interaction) {
     console.log('No handler found for button:', interaction.customId);
   } catch (error) {
     console.error('Error in button handler:', error);
+    
+    if (error.code === 10062) {
+      console.log('Interaction has expired, cannot send error response');
+      return;
+    }
+    
     if (!interaction.replied && !interaction.deferred) {
       try {
         await interaction.reply({
@@ -185,7 +191,9 @@ export async function handleButtonInteraction(interaction) {
           flags: 64
         });
       } catch (replyError) {
-        console.error('Error sending error reply:', replyError);
+        if (replyError.code !== 10062) {
+          console.error('Error sending error reply:', replyError);
+        }
       }
     } else if (interaction.deferred) {
       try {
@@ -193,7 +201,9 @@ export async function handleButtonInteraction(interaction) {
           content: '❌ An error occurred while processing your request. Please try again later.'
         });
       } catch (editError) {
-        console.error('Error editing error reply:', editError);
+        if (editError.code !== 10062) {
+          console.error('Error editing error reply:', editError);
+        }
       }
     }
   }

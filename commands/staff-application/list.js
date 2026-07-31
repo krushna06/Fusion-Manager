@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder, PermissionsBitField } from 'discord.js';
 import { getAllStaffApplications } from '../../database/mainDb.js';
+import { deleteStaffApplication } from '../../database/models/staffApplication.js';
 import config from '../../config.js';
 
 export default {
@@ -37,18 +38,59 @@ export default {
         return interaction.editReply({ content: 'There are no open staff applications.' });
       }
 
+      // Validate channels and remove invalid ones
+      const validApplications = [];
+      const invalidApplications = [];
+      
+      for (const app of applications) {
+        try {
+          const channel = await interaction.client.channels.fetch(app.channel_id).catch(() => null);
+          if (channel) {
+            validApplications.push(app);
+          } else {
+            invalidApplications.push(app);
+            // Remove invalid application from database
+            await deleteStaffApplication(app.channel_id);
+            console.log(`Removed invalid staff application #${app.id} - channel ${app.channel_id} not found`);
+          }
+        } catch (error) {
+          invalidApplications.push(app);
+          // Remove invalid application from database
+          await deleteStaffApplication(app.channel_id);
+          console.log(`Removed invalid staff application #${app.id} - error: ${error.message}`);
+        }
+      }
+
+      if (invalidApplications.length > 0) {
+        console.log(`Cleaned up ${invalidApplications.length} invalid staff application(s) with missing channels`);
+      }
+
+      if (validApplications.length === 0) {
+        return interaction.editReply({ 
+          content: `There are no open staff applications. ${invalidApplications.length > 0 ? `Cleaned up ${invalidApplications.length} invalid application(s) with missing channels.` : ''}` 
+        });
+      }
+
+      const maxFields = 25;
+      const displayApps = validApplications.slice(0, maxFields);
+      const remainingApps = validApplications.length - maxFields;
+
       const embed = new EmbedBuilder()
         .setTitle('Open Staff Applications')
         .setColor(0x5865F2)
-        .setDescription(`Found ${applications.length} open staff application(s)`)
+        .setDescription(`Found ${validApplications.length} open staff application(s)${remainingApps > 0 ? ` (showing first ${maxFields})` : ''}${invalidApplications.length > 0 ? `\n\nCleaned up ${invalidApplications.length} invalid application(s)` : ''}`)
         .addFields(
-          applications.map(app => ({
+          displayApps.map(app => ({
             name: `Application #${app.id}`,
             value: `**User:** <@${app.staff_id}>\n**Channel:** <#${app.channel_id}>\n**Status:** ${app.status}\n**Created:** ${new Date(app.created_at).toLocaleDateString()}`,
             inline: false
           }))
         )
         .setTimestamp();
+
+      if (remainingApps > 0) {
+        embed.setFooter({ text: `${remainingApps} more applications not shown. Contact a developer to see all applications.` });
+      }
 
       await interaction.editReply({ embeds: [embed] });
     } catch (err) {

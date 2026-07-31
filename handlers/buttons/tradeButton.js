@@ -41,25 +41,37 @@ export async function handleTradeButton(interaction) {
       await handleCounterOfferRejection(interaction);
     } else {
       if (!interaction.replied) {
-        await interaction.reply({
-          content: '❌ Unknown button action. Please try again.',
-          ephemeral: true,
-          flags: 1 << 6
-        });
+        try {
+          await interaction.reply({
+            content: '❌ Unknown button action. Please try again.',
+            ephemeral: true,
+            flags: 1 << 6
+          });
+        } catch (replyError) {
+          console.error('Error sending unknown button reply:', replyError);
+        }
       }
     }
   } catch (error) {
     console.error('Error in handleTradeButton:', error);
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({
-        content: '❌ An error occurred while processing your request. Please try again later.',
-        ephemeral: true,
-        flags: 1 << 6
-      });
+      try {
+        await interaction.reply({
+          content: '❌ An error occurred while processing your request. Please try again later.',
+          ephemeral: true,
+          flags: 1 << 6
+        });
+      } catch (replyError) {
+        console.error('Error sending error reply:', replyError);
+      }
     } else if (interaction.deferred) {
-      await interaction.editReply({
-        content: '❌ An error occurred while processing your request. Please try again later.'
-      });
+      try {
+        await interaction.editReply({
+          content: '❌ An error occurred while processing your request. Please try again later.'
+        });
+      } catch (editError) {
+        console.error('Error editing error reply:', editError);
+      }
     }
   }
 }
@@ -68,18 +80,23 @@ async function handleTradeAccept(interaction) {
   const messageId = interaction.customId.replace('accept_trade_', '');
   
   try {
+    await interaction.deferReply({ ephemeral: true, flags: 1 << 6 });
+  } catch (deferError) {
+    console.error('Error deferring reply:', deferError);
+    return;
+  }
+  
+  try {
     const trade = await getTradeByMessageId(messageId);
     if (!trade) {
-      return interaction.reply({
-        content: 'Trade not found. It may have been deleted or already processed.',
-        ephemeral: true
+      return interaction.editReply({
+        content: 'Trade not found. It may have been deleted or already processed.'
       });
     }
 
     if (interaction.user.id === trade.user_id) {
-      return interaction.reply({
-        content: 'You cannot accept your own trade.',
-        ephemeral: true
+      return interaction.editReply({
+        content: 'You cannot accept your own trade.'
       });
     }
 
@@ -136,62 +153,61 @@ async function handleTradeAccept(interaction) {
           ]
         });
 
-        await interaction.reply({
-          content: 'Your trade offer has been sent to the trade creator!',
-          ephemeral: true,
-          flags: 1 << 6
+        await interaction.editReply({
+          content: 'Your trade offer has been sent to the trade creator!'
         });
       } catch (dmError) {
         console.error('Error sending DM:', dmError);
-        await interaction.reply({
-          content: 'I was unable to send a DM to the trade creator. Please ask them to enable DMs from server members.',
-          ephemeral: true,
-          flags: 1 << 6
+        await interaction.editReply({
+          content: 'I was unable to send a DM to the trade creator. Please ask them to enable DMs from server members.'
         });
       }
       
     } catch (error) {
       console.error('Error processing trade acceptance:', error);
-      await interaction.reply({
-        content: 'An error occurred while processing your trade acceptance. Please try again later.',
-        ephemeral: true
+      await interaction.editReply({
+        content: 'An error occurred while processing your trade acceptance. Please try again later.'
       });
     }
   } catch (error) {
     console.error('Error fetching trade:', error);
-    await interaction.reply({
-      content: 'An error occurred while fetching trade details. Please try again later.',
-      ephemeral: true
-    });
+    try {
+      await interaction.editReply({
+        content: 'An error occurred while fetching trade details. Please try again later.'
+      });
+    } catch (editError) {
+      console.error('Error editing reply:', editError);
+    }
   }
 }
 
 async function handleTradeConfirmation(interaction) {
   const [_, messageId, userId] = interaction.customId.match(/confirm_trade_(\d+)_(\d+)/) || [];
   
+  try {
+    await interaction.deferReply({ ephemeral: true, flags: 1 << 6 });
+  } catch (deferError) {
+    console.error('Error deferring reply:', deferError);
+    return;
+  }
+  
   if (!messageId || !userId) {
-    return interaction.reply({
-      content: 'Invalid trade confirmation request.',
-      ephemeral: true,
-      flags: 1 << 6
+    return interaction.editReply({
+      content: 'Invalid trade confirmation request.'
     });
   }
   
   try {
     const trade = await getTradeByMessageId(messageId);
     if (!trade) {
-      return interaction.reply({
-        content: 'Trade not found. It may have been deleted or already processed.',
-        ephemeral: true,
-        flags: 1 << 6
+      return interaction.editReply({
+        content: 'Trade not found. It may have been deleted or already processed.'
       });
     }
 
     if (interaction.user.id !== trade.user_id) {
-      return interaction.reply({
-        content: 'Only the trade creator can confirm this trade.',
-        ephemeral: true,
-        flags: 1 << 6
+      return interaction.editReply({
+        content: 'Only the trade creator can confirm this trade.'
       });
     }
 
@@ -199,10 +215,8 @@ async function handleTradeConfirmation(interaction) {
       const updatedTrade = await updateTradeStatus(messageId, 'completed', interaction.user.id, 'Trade completed');
       
       if (!updatedTrade) {
-        return interaction.reply({
-          content: 'Failed to update trade status. Please try again.',
-          ephemeral: true,
-          flags: 1 << 6
+        return interaction.editReply({
+          content: 'Failed to update trade status. Please try again.'
         });
       }
       
@@ -224,10 +238,8 @@ async function handleTradeConfirmation(interaction) {
     try {
       const tradeAccepter = await interaction.client.users.fetch(userId);
       
-      await interaction.reply({
-        content: `✅ You have confirmed the trade with ${tradeAccepter.tag}!`,
-        ephemeral: true,
-        flags: 1 << 6
+      await interaction.editReply({
+        content: `✅ You have confirmed the trade with ${tradeAccepter.tag}!`
       });
       
       try {
@@ -255,23 +267,19 @@ async function handleTradeConfirmation(interaction) {
       
     } catch (userError) {
       console.error('Error fetching user or sending confirmation:', userError);
-      await interaction.reply({
-        content: '✅ Trade confirmed, but there was an error notifying the other user.',
-        ephemeral: true,
-        flags: 1 << 6
+      await interaction.editReply({
+        content: '✅ Trade confirmed, but there was an error notifying the other user.'
       });
     }
     
   } catch (error) {
     console.error('Error confirming trade:', error);
     try {
-      await interaction.reply({
-        content: 'An error occurred while confirming the trade. Please try again later.',
-        ephemeral: true,
-        flags: 1 << 6
+      await interaction.editReply({
+        content: 'An error occurred while confirming the trade. Please try again later.'
       });
-    } catch (replyError) {
-      console.error('Failed to send error reply:', replyError);
+    } catch (editError) {
+      console.error('Failed to send error reply:', editError);
     }
   }
 }
@@ -282,17 +290,27 @@ async function handleCounterOffer(interaction) {
   try {
     const trade = await getTradeByMessageId(messageId);
     if (!trade) {
-      return interaction.reply({
-        content: 'Trade not found. It may have been deleted or already processed.',
-        flags: 1 << 6
-      });
+      try {
+        return interaction.reply({
+          content: 'Trade not found. It may have been deleted or already processed.',
+          flags: 1 << 6
+        });
+      } catch (replyError) {
+        console.error('Error sending trade not found reply:', replyError);
+        return;
+      }
     }
 
     if (interaction.user.id === trade.user_id) {
-      return interaction.reply({
-        content: 'You cannot make a counter offer on your own trade.',
-        flags: 1 << 6
-      });
+      try {
+        return interaction.reply({
+          content: 'You cannot make a counter offer on your own trade.',
+          flags: 1 << 6
+        });
+      } catch (replyError) {
+        console.error('Error sending own trade reply:', replyError);
+        return;
+      }
     }
 
     const modal = new ModalBuilder()
@@ -375,15 +393,13 @@ async function handleCounterOffer(interaction) {
         });
 
         await modalResponse.editReply({
-          content: '✅ Your counter offer has been sent to the trade creator!',
-          flags: 1 << 6
+          content: '✅ Your counter offer has been sent to the trade creator!'
         });
       } catch (dmError) {
         console.error('Error in DM process:', dmError);
         if (dmError.message === 'DM_FAILED') {
           await modalResponse.editReply({
-            content: '⚠️ I was unable to send a DM to the trade creator. Please ask them to enable DMs from server members.',
-            flags: 1 << 6
+            content: '⚠️ I was unable to send a DM to the trade creator. Please ask them to enable DMs from server members.'
           });
         } else {
           throw dmError;
@@ -394,20 +410,36 @@ async function handleCounterOffer(interaction) {
         interaction.followUp({ 
           content: 'Counter offer timed out or was cancelled.', 
           flags: 1 << 6
-        }).catch(console.error);
+        }).catch(followUpError => {
+          if (followUpError.code !== 10062) {
+            console.error('Error sending follow-up:', followUpError);
+          }
+        });
       }
     }
   } catch (error) {
     console.error('Error handling counter offer:', error);
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({
-        content: 'An error occurred while processing your counter offer. Please try again later.',
-        flags: 1 << 6
-      }).catch(console.error);
+      try {
+        await interaction.reply({
+          content: 'An error occurred while processing your counter offer. Please try again later.',
+          flags: 1 << 6
+        });
+      } catch (replyError) {
+        if (replyError.code !== 10062) {
+          console.error('Error sending reply:', replyError);
+        }
+      }
     } else if (interaction.deferred) {
-      await interaction.editReply({
-        content: 'An error occurred while processing your counter offer. Please try again later.'
-      }).catch(console.error);
+      try {
+        await interaction.editReply({
+          content: 'An error occurred while processing your counter offer. Please try again later.'
+        });
+      } catch (editError) {
+        if (editError.code !== 10062) {
+          console.error('Error editing reply:', editError);
+        }
+      }
     }
   }
 }
@@ -415,22 +447,25 @@ async function handleCounterOffer(interaction) {
 async function handleCounterOfferConfirmation(interaction) {
   const match = interaction.customId.match(/confirm_counter_(\d+)_(\d+)/);
   
+  try {
+    await interaction.deferReply({ ephemeral: true, flags: 1 << 6 });
+  } catch (deferError) {
+    console.error('Error deferring reply:', deferError);
+    return;
+  }
+  
   if (!match) {
     console.error('Invalid customId format:', interaction.customId);
-    return interaction.reply({
-      content: '❌ Invalid counter offer confirmation request format.',
-      ephemeral: true,
-      flags: 1 << 6
+    return interaction.editReply({
+      content: '❌ Invalid counter offer confirmation request format.'
     });
   }
   
   const [_, tradeId, userId] = match;
   
   if (!tradeId || !userId) {
-    return interaction.reply({
-      content: '❌ Invalid counter offer confirmation request. Missing required parameters.',
-      ephemeral: true,
-      flags: 1 << 6
+    return interaction.editReply({
+      content: '❌ Invalid counter offer confirmation request. Missing required parameters.'
     });
   }
   
@@ -442,18 +477,14 @@ async function handleCounterOfferConfirmation(interaction) {
     }
     
     if (!trade) {
-      return interaction.reply({
-        content: 'Trade not found. It may have been deleted or already processed.',
-        ephemeral: true,
-        flags: 1 << 6
+      return interaction.editReply({
+        content: 'Trade not found. It may have been deleted or already processed.'
       });
     }
 
     if (interaction.user.id !== trade.user_id) {
-      return interaction.reply({
-        content: 'Only the trade creator can confirm this counter offer.',
-        ephemeral: true,
-        flags: 1 << 6
+      return interaction.editReply({
+        content: 'Only the trade creator can confirm this counter offer.'
       });
     }
 
@@ -469,10 +500,8 @@ async function handleCounterOfferConfirmation(interaction) {
       
       if (!updatedTrade) {
         console.error('Failed to update trade status');
-        return interaction.reply({
-          content: '❌ Failed to update trade status. Please try again.',
-          ephemeral: true,
-          flags: 1 << 6
+        return interaction.editReply({
+          content: '❌ Failed to update trade status. Please try again.'
         });
       }
       
@@ -490,10 +519,8 @@ async function handleCounterOfferConfirmation(interaction) {
       }
     } catch (updateError) {
       console.error('Error updating trade status:', updateError);
-      return interaction.reply({
-        content: 'An error occurred while updating the trade status. Please try again later.',
-        ephemeral: true,
-        flags: 1 << 6
+      return interaction.editReply({
+        content: 'An error occurred while updating the trade status. Please try again later.'
       });
     }
     
@@ -510,6 +537,10 @@ async function handleCounterOfferConfirmation(interaction) {
               .setTitle('✅ Counter Offer Accepted')
               .setColor(0x57F287);
           })
+        });
+      } else {
+        await interaction.editReply({
+          content: `✅ You have accepted the counter offer from ${counterOfferer.tag}!`
         });
       }
       
@@ -540,19 +571,42 @@ async function handleCounterOfferConfirmation(interaction) {
     } catch (userError) {
       console.error('Error fetching user or sending confirmation:', userError);
       if (interaction.isButton()) {
-        await interaction.update({
-          content: '✅ Counter offer accepted, but there was an error notifying the other user.',
-          components: []
-        });
+        try {
+          await interaction.update({
+            content: '✅ Counter offer accepted, but there was an error notifying the other user.',
+            components: []
+          });
+        } catch (updateError) {
+          console.error('Error updating interaction:', updateError);
+        }
+      } else {
+        try {
+          await interaction.editReply({
+            content: '✅ Counter offer accepted, but there was an error notifying the other user.'
+          });
+        } catch (editError) {
+          console.error('Error editing reply:', editError);
+        }
       }
     }
   } catch (error) {
-    if (!interaction.replied) {
-      interaction.reply({
-        content: 'An error occurred while processing your request. Please try again later.',
-        ephemeral: true,
-        flags: 1 << 6
-      });
+    console.error('Error in counter offer confirmation:', error);
+    try {
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: 'An error occurred while processing your request. Please try again later.',
+          ephemeral: true,
+          flags: 1 << 6
+        });
+      } else if (interaction.deferred) {
+        await interaction.editReply({
+          content: 'An error occurred while processing your request. Please try again later.'
+        });
+      }
+    } catch (replyError) {
+      if (replyError.code !== 10062) {
+        console.error('Error sending error reply:', replyError);
+      }
     }
   }
 }
@@ -560,29 +614,30 @@ async function handleCounterOfferConfirmation(interaction) {
 async function handleCounterOfferRejection(interaction) {
   const [_, tradeId, userId] = interaction.customId.match(/reject_counter_(\d+)_(\d+)/) || [];
   
+  try {
+    await interaction.deferReply({ ephemeral: true, flags: 1 << 6 });
+  } catch (deferError) {
+    console.error('Error deferring reply:', deferError);
+    return;
+  }
+  
   if (!tradeId || !userId) {
-    return interaction.reply({
-      content: 'Invalid counter offer rejection request.',
-      ephemeral: true,
-      flags: 1 << 6
+    return interaction.editReply({
+      content: 'Invalid counter offer rejection request.'
     });
   }
   
   try {
     const trade = await getTradeByMessageId(tradeId);
     if (!trade) {
-      return interaction.reply({
-        content: 'Trade not found. It may have been deleted or already processed.',
-        ephemeral: true,
-        flags: 1 << 6
+      return interaction.editReply({
+        content: 'Trade not found. It may have been deleted or already processed.'
       });
     }
 
     if (interaction.user.id !== trade.user_id) {
-      return interaction.reply({
-        content: 'Only the trade creator can reject this counter offer.',
-        ephemeral: true,
-        flags: 1 << 6
+      return interaction.editReply({
+        content: 'Only the trade creator can reject this counter offer.'
       });
     }
 
@@ -622,23 +677,37 @@ async function handleCounterOfferRejection(interaction) {
         });
       } catch (updateError) {
         console.error('Error updating interaction:', updateError);
-        if (!interaction.replied && !interaction.deferred) {
-          await interaction.reply({
-            content: '❌ You have rejected the counter offer. (Could not update original message)',
-            ephemeral: true,
-            flags: 1 << 6
+        try {
+          await interaction.editReply({
+            content: '❌ You have rejected the counter offer. (Could not update original message)'
           });
+        } catch (editError) {
+          console.error('Error editing reply:', editError);
         }
       }
+    } else {
+      await interaction.editReply({
+        content: '❌ You have rejected the counter offer.'
+      });
     }
   } catch (error) {
     console.error('Error handling counter offer rejection:', error);
-    if (!interaction.replied) {
-      interaction.reply({
-        content: 'An error occurred while processing your request. Please try again later.',
-        ephemeral: true,
-        flags: 1 << 6
-      });
+    try {
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: 'An error occurred while processing your request. Please try again later.',
+          ephemeral: true,
+          flags: 1 << 6
+        });
+      } else if (interaction.deferred) {
+        await interaction.editReply({
+          content: 'An error occurred while processing your request. Please try again later.'
+        });
+      }
+    } catch (replyError) {
+      if (replyError.code !== 10062) {
+        console.error('Error sending error reply:', replyError);
+      }
     }
   }
 }
@@ -646,29 +715,30 @@ async function handleCounterOfferRejection(interaction) {
 async function handleTradeRejection(interaction) {
   const [_, messageId, userId] = interaction.customId.match(/reject_trade_(\d+)_(\d+)/) || [];
   
+  try {
+    await interaction.deferReply({ ephemeral: true, flags: 1 << 6 });
+  } catch (deferError) {
+    console.error('Error deferring reply:', deferError);
+    return;
+  }
+  
   if (!messageId || !userId) {
-    return interaction.reply({
-      content: 'Invalid trade rejection request.',
-      ephemeral: true,
-      flags: 1 << 6
+    return interaction.editReply({
+      content: 'Invalid trade rejection request.'
     });
   }
   
   try {
     const trade = await getTradeByMessageId(messageId);
     if (!trade) {
-      return interaction.reply({
-        content: 'Trade not found. It may have been deleted or already processed.',
-        ephemeral: true,
-        flags: 1 << 6
+      return interaction.editReply({
+        content: 'Trade not found. It may have been deleted or already processed.'
       });
     }
 
     if (interaction.user.id !== trade.user_id) {
-      return interaction.reply({
-        content: 'Only the trade creator can reject this trade.',
-        ephemeral: true,
-        flags: 1 << 6
+      return interaction.editReply({
+        content: 'Only the trade creator can reject this trade.'
       });
     }
 
@@ -715,31 +785,27 @@ async function handleTradeRejection(interaction) {
         console.error('Error sending rejection DM:', dmError);
       }
       
-      await interaction.reply({
-        content: `You have rejected the trade offer from ${tradeAccepter.tag}.`,
-        ephemeral: true,
-        flags: 1 << 6
+      await interaction.editReply({
+        content: `You have rejected the trade offer from ${tradeAccepter.tag}.`
       });
       
     } catch (userError) {
       console.error('Error fetching user for rejection:', userError);
-      await interaction.reply({
-        content: 'You have rejected the trade offer.',
-        ephemeral: true,
-        flags: 1 << 6
+      await interaction.editReply({
+        content: 'You have rejected the trade offer.'
       });
     }
     
   } catch (error) {
     console.error('Error rejecting trade:', error);
     try {
-      await interaction.reply({
-        content: 'An error occurred while rejecting the trade. Please try again later.',
-        ephemeral: true,
-        flags: 1 << 6
+      await interaction.editReply({
+        content: 'An error occurred while rejecting the trade. Please try again later.'
       });
-    } catch (replyError) {
-      console.error('Failed to send error reply:', replyError);
+    } catch (editError) {
+      if (editError.code !== 10062) {
+        console.error('Failed to send error reply:', editError);
+      }
     }
   }
 }

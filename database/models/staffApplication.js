@@ -1,12 +1,5 @@
 import { dbPromise } from '../mainDb.js';
 
-/**
- * @param {string} channelId
- * @param {string} staffId
- * @param {string} managerId
- * @param {string} createdAt
- * @returns {Promise<number>}
- */
 export async function addStaffApplication(channelId, staffId, managerId, createdAt) {
   const db = await dbPromise;
   const result = await db.run(
@@ -16,10 +9,6 @@ export async function addStaffApplication(channelId, staffId, managerId, created
   return result.lastID;
 }
 
-/**
- * @param {string} channelId
- * @returns {Promise<Object>}
- */
 export async function getStaffApplicationByChannel(channelId) {
   const db = await dbPromise;
   return await db.get(
@@ -28,11 +17,6 @@ export async function getStaffApplicationByChannel(channelId) {
   );
 }
 
-/**
- * @param {string} channelId
- * @param {string} userId
- * @returns {Promise<Array<string>>}
- */
 export async function addAdditionalUserToStaffApplication(channelId, userId) {
   const db = await dbPromise;
   const row = await db.get(
@@ -61,11 +45,6 @@ export async function addAdditionalUserToStaffApplication(channelId, userId) {
   return users;
 }
 
-/**
- * @param {string} channelId
- * @param {string} userId
- * @returns {Promise<Array<string>>}
- */
 export async function removeAdditionalUserFromStaffApplication(channelId, userId) {
   const db = await dbPromise;
   const row = await db.get(
@@ -90,4 +69,12 @@ export async function removeAdditionalUserFromStaffApplication(channelId, userId
   );
   
   return users;
+}
+
+export async function deleteStaffApplication(channelId) {
+  const db = await dbPromise;
+  await db.run(
+    `DELETE FROM staff_applications WHERE channel_id = ?`,
+    [channelId]
+  );
 }
