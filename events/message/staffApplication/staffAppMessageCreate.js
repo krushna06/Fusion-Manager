@@ -1,4 +1,5 @@
 import { getStaffApplicationByChannel, updateApplicationQuestionStep, updateApplicationState, updateApplicationResponses } from '../../../database/mainDb.js';
+import { deleteStaffApplication } from '../../../database/models/staffApplication.js';
 import { staffApplicationQuestions } from '../../../utils/staffApplicationQuestions.js';
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 
@@ -20,6 +21,18 @@ export async function handleStaffApplicationMessage(message) {
     const application = await getStaffApplicationByChannel(channelId);
     
     if (!application) {
+      try {
+        const channel = await message.guild.channels.fetch(channelId).catch(() => null);
+        if (!channel) {
+          try {
+            await deleteStaffApplication(channelId);
+          } catch (deleteError) {
+            console.error('Error deleting orphaned staff application:', deleteError);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking channel existence:', error);
+      }
       return;
     }
 

@@ -78,3 +78,11 @@ export async function deleteStaffApplication(channelId) {
     [channelId]
   );
 }
+
+export async function deleteStaffApplicationById(applicationId) {
+  const db = await dbPromise;
+  await db.run(
+    `DELETE FROM staff_applications WHERE id = ?`,
+    [applicationId]
+  );
+}

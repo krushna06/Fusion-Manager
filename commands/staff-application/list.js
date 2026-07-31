@@ -38,7 +38,6 @@ export default {
         return interaction.editReply({ content: 'There are no open staff applications.' });
       }
 
-      // Validate channels and remove invalid ones
       const validApplications = [];
       const invalidApplications = [];
       
@@ -49,25 +48,17 @@ export default {
             validApplications.push(app);
           } else {
             invalidApplications.push(app);
-            // Remove invalid application from database
             await deleteStaffApplication(app.channel_id);
-            console.log(`Removed invalid staff application #${app.id} - channel ${app.channel_id} not found`);
           }
         } catch (error) {
           invalidApplications.push(app);
-          // Remove invalid application from database
           await deleteStaffApplication(app.channel_id);
-          console.log(`Removed invalid staff application #${app.id} - error: ${error.message}`);
         }
-      }
-
-      if (invalidApplications.length > 0) {
-        console.log(`Cleaned up ${invalidApplications.length} invalid staff application(s) with missing channels`);
       }
 
       if (validApplications.length === 0) {
         return interaction.editReply({ 
-          content: `There are no open staff applications. ${invalidApplications.length > 0 ? `Cleaned up ${invalidApplications.length} invalid application(s) with missing channels.` : ''}` 
+          content: 'There are no open staff applications.' 
         });
       }
 
@@ -78,7 +69,7 @@ export default {
       const embed = new EmbedBuilder()
         .setTitle('Open Staff Applications')
         .setColor(0x5865F2)
-        .setDescription(`Found ${validApplications.length} open staff application(s)${remainingApps > 0 ? ` (showing first ${maxFields})` : ''}${invalidApplications.length > 0 ? `\n\nCleaned up ${invalidApplications.length} invalid application(s)` : ''}`)
+        .setDescription(`Found ${validApplications.length} open staff application(s)${remainingApps > 0 ? ` (showing first ${maxFields})` : ''}`)
         .addFields(
           displayApps.map(app => ({
             name: `Application #${app.id}`,

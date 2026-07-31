@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, PermissionsBitField } from 'discord.js';
 import { updateStaffApplicationStatus, getStaffApplicationById } from '../../database/mainDb.js';
+import { deleteStaffApplication, deleteStaffApplicationById } from '../../database/models/staffApplication.js';
 import config from '../../config.js';
 
 export default {
@@ -37,17 +38,27 @@ export default {
         }
         
         if (!application.channel_id) {
-          return interaction.editReply({ content: 'This application does not have an associated channel.' });
+          try {
+            await deleteStaffApplicationById(applicationId);
+          } catch (deleteError) {
+            console.error('Error deleting staff application with no channel:', deleteError);
+          }
+          return interaction.editReply({ content: 'This application does not have an associated channel. The application record has been deleted from the database.' });
         }
         
         channel = await interaction.guild.channels.fetch(application.channel_id).catch(() => null);
         if (!channel) {
-          return interaction.editReply({ content: 'The channel for this application could not be found.' });
+          try {
+            await deleteStaffApplicationById(applicationId);
+          } catch (deleteError) {
+            console.error('Error deleting corrupted staff application:', deleteError);
+          }
+          return interaction.editReply({ content: `The channel for this application could not be found. The corrupted application record has been deleted from the database.`, ephemeral: true });
         }
       } else {
         channel = interaction.channel;
         if (!channel.name.startsWith('staff-app-')) {
-          return interaction.editReply({ content: 'This command can only be used in staff application channels unless you specify an application ID.' });
+          return interaction.editReply({ content: 'This command can only be used in staff application channels unless you specify an application ID.', ephemeral: true });
         }
       }
       

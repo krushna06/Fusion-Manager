@@ -1,4 +1,5 @@
 import { updateStaffApplicationStatus, getStaffApplicationByChannel, getStaffApplicationById } from '../../database/mainDb.js';
+import { deleteStaffApplication } from '../../database/models/staffApplication.js';
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, AttachmentBuilder, PermissionsBitField } from 'discord.js';
 import { generateFromMessages } from 'discord-html-transcripts';
 import config from '../../config.js';
@@ -56,6 +57,19 @@ export async function handleStaffAppDecisionButton(interaction) {
                 interaction.customId.startsWith('staff_reject_') ? 'reject' : 
                 interaction.customId.startsWith('staff_bgcheck_') ? 'bgcheck' : 'close';
   const channelId = interaction.customId.split('_').pop();
+
+  const channel = await interaction.guild.channels.fetch(channelId).catch(() => null);
+  if (!channel) {
+    try {
+      await deleteStaffApplication(channelId);
+    } catch (deleteError) {
+      console.error('Error deleting staff application with missing channel:', deleteError);
+    }
+    return interaction.reply({ 
+      content: 'The channel for this application could not be found. The application has been removed from the database.', 
+      flags: 64 
+    });
+  }
 
   if (action === 'bgcheck') {
     await interaction.deferReply({ flags: 64 });

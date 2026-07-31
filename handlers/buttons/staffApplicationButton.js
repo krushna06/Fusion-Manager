@@ -1,4 +1,5 @@
 import { getStaffApplicationByUser, createStaffApplication, updateApplicationQuestionStep, updateApplicationState } from '../../database/mainDb.js';
+import { deleteStaffApplication } from '../../database/models/staffApplication.js';
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField } from 'discord.js';
 import config from '../../config.js';
 import { staffApplicationQuestions } from '../../utils/staffApplicationQuestions.js';
@@ -49,9 +50,18 @@ export async function handleStaffApplicationButton(interaction) {
     if (existingApp) {
       if (existingApp.status === 'pending' || existingApp.status === 'accepted') {
         if (existingApp.channel_id) {
-          return interaction.editReply({ 
-            content: `You already have an active staff application in <#${existingApp.channel_id}>. Please use that channel.` 
-          });
+          const channel = await interaction.guild.channels.fetch(existingApp.channel_id).catch(() => null);
+          if (!channel) {
+            try {
+              await deleteStaffApplication(existingApp.channel_id);
+            } catch (deleteError) {
+              console.error('Error deleting corrupted staff application:', deleteError);
+            }
+          } else {
+            return interaction.editReply({ 
+              content: `You already have an active staff application in <#${existingApp.channel_id}>. Please use that channel.` 
+            });
+          }
         }
       }
       
@@ -77,9 +87,18 @@ export async function handleStaffApplicationButton(interaction) {
 
     const recentApp = await getStaffApplicationByUser(userId);
     if (recentApp && recentApp.status === 'pending' && recentApp.channel_id) {
-      return interaction.editReply({ 
-        content: `You already have an active staff application in <#${recentApp.channel_id}>. Please use that channel.` 
-      });
+      const channel = await interaction.guild.channels.fetch(recentApp.channel_id).catch(() => null);
+      if (!channel) {
+        try {
+          await deleteStaffApplication(recentApp.channel_id);
+        } catch (deleteError) {
+          console.error('Error deleting corrupted staff application:', deleteError);
+        }
+      } else {
+        return interaction.editReply({ 
+          content: `You already have an active staff application in <#${recentApp.channel_id}>. Please use that channel.` 
+        });
+      }
     }
 
     const guild = interaction.guild;
