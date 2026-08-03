@@ -71,6 +71,10 @@ export async function handleModalSubmit(interaction) {
       return await handleProofSubmission(interaction, proofRequest);
     }
     
+    if (interaction.customId.startsWith('counter_modal_')) {
+      return;
+    }
+    
     console.log('No handler found for modal:', interaction.customId);
   } catch (error) {
     console.error('Error in modal handler:', error);

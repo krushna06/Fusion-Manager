@@ -1,6 +1,5 @@
 import { addTrade } from '../../../database/models/trade.js';
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { success } from '../../../utils/logger.js';
 import { dbPromise } from '../../../database/mainDb.js';
 
 export async function handleTradeRequest(message) {
@@ -107,8 +106,6 @@ export async function handleTradeRequest(message) {
       lookingFor,
       offering
     );
-    
-    success(`New trade request from ${message.author.tag}: ${lookingFor} for ${offering}`);
     
   } catch (error) {
     console.error('Error processing trade request:', error);

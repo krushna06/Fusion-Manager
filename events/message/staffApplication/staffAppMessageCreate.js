@@ -272,6 +272,12 @@ function generateApplicationEmbed(responses, user) {
     return name.substring(0, 253) + '...';
   };
   
+  const truncateFieldValue = (value) => {
+    if (!value) return 'Not provided';
+    if (value.length <= 1024) return value;
+    return value.substring(0, 1021) + '...';
+  };
+  
   const embed1 = new EmbedBuilder()
     .setTitle(`Staff Application - ${responses.ign || user.username}`)
     .setColor(0x5865F2)
@@ -279,7 +285,7 @@ function generateApplicationEmbed(responses, user) {
       { name: 'Discord User', value: `<@${user.id}>`, inline: false },
       ...basicInfoQuestions.map(q => ({
         name: truncateFieldName(q.label),
-        value: q.id === 'ign' ? (responses.ign || responses.minecraft_username || 'Not provided') : (responses[q.id] || 'Not provided'),
+        value: truncateFieldValue(q.id === 'ign' ? (responses.ign || responses.minecraft_username) : responses[q.id]),
         inline: false
       }))
     )
@@ -291,7 +297,7 @@ function generateApplicationEmbed(responses, user) {
     .addFields(
       ...timeAccountsQuestions.map(q => ({
         name: truncateFieldName(q.label),
-        value: responses[q.id] || 'Not provided',
+        value: truncateFieldValue(responses[q.id]),
         inline: false
       }))
     );
@@ -302,7 +308,7 @@ function generateApplicationEmbed(responses, user) {
     .addFields(
       ...experienceAboutQuestions.map(q => ({
         name: truncateFieldName(q.label),
-        value: responses[q.id] || 'Not provided',
+        value: truncateFieldValue(responses[q.id]),
         inline: false
       }))
     );
@@ -313,7 +319,7 @@ function generateApplicationEmbed(responses, user) {
     .addFields(
       ...scenarioQuestions.map(q => ({
         name: truncateFieldName(q.label),
-        value: responses[q.id] || 'Not provided',
+        value: truncateFieldValue(responses[q.id]),
         inline: false
       }))
     );
