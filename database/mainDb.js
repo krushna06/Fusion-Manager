@@ -191,6 +191,21 @@ async function initDatabase() {
   if (!pragma.some(col => col.name === 'application_state')) {
     await db.exec(`ALTER TABLE staff_applications ADD COLUMN application_state TEXT DEFAULT 'collecting'`);
   }
+  if (!pragma.some(col => col.name === 'interview_scheduled_time')) {
+    await db.exec(`ALTER TABLE staff_applications ADD COLUMN interview_scheduled_time TIMESTAMP`);
+  }
+  if (!pragma.some(col => col.name === 'interview_status')) {
+    await db.exec(`ALTER TABLE staff_applications ADD COLUMN interview_status TEXT DEFAULT 'pending'`);
+  }
+  if (!pragma.some(col => col.name === 'interview_voice_channel_id')) {
+    await db.exec(`ALTER TABLE staff_applications ADD COLUMN interview_voice_channel_id TEXT`);
+  }
+  if (!pragma.some(col => col.name === 'interview_message_id')) {
+    await db.exec(`ALTER TABLE staff_applications ADD COLUMN interview_message_id TEXT`);
+  }
+  if (!pragma.some(col => col.name === 'interview_scheduled_by')) {
+    await db.exec(`ALTER TABLE staff_applications ADD COLUMN interview_scheduled_by TEXT`);
+  }
   
   const managerIdCol = pragma.find(col => col.name === 'manager_id');
   const channelIdCol = pragma.find(col => col.name === 'channel_id');
@@ -641,6 +656,58 @@ async function getModerationProofRequestByMessageId(messageId) {
   );
 }
 
+async function scheduleInterview(channelId, scheduledTime, scheduledBy) {
+  const db = await dbPromise;
+  await db.run(
+    `UPDATE staff_applications 
+     SET interview_scheduled_time = ?, interview_status = 'scheduled', interview_scheduled_by = ? 
+     WHERE channel_id = ?`,
+    [scheduledTime, scheduledBy, channelId]
+  );
+  return await getStaffApplicationByChannel(channelId);
+}
+
+async function updateInterviewStatus(channelId, status) {
+  const db = await dbPromise;
+  await db.run(
+    `UPDATE staff_applications 
+     SET interview_status = ? 
+     WHERE channel_id = ?`,
+    [status, channelId]
+  );
+  return await getStaffApplicationByChannel(channelId);
+}
+
+async function setInterviewVoiceChannel(channelId, voiceChannelId) {
+  const db = await dbPromise;
+  await db.run(
+    `UPDATE staff_applications 
+     SET interview_voice_channel_id = ? 
+     WHERE channel_id = ?`,
+    [voiceChannelId, channelId]
+  );
+  return await getStaffApplicationByChannel(channelId);
+}
+
+async function setInterviewMessage(channelId, messageId) {
+  const db = await dbPromise;
+  await db.run(
+    `UPDATE staff_applications 
+     SET interview_message_id = ? 
+     WHERE channel_id = ?`,
+    [messageId, channelId]
+  );
+  return await getStaffApplicationByChannel(channelId);
+}
+
+async function getScheduledInterviews() {
+  const db = await dbPromise;
+  return await db.all(
+    `SELECT * FROM staff_applications 
+     WHERE interview_status = 'scheduled' AND interview_scheduled_time IS NOT NULL`
+  );
+}
+
 export {
   dbPromise,
   initDatabase,
@@ -683,5 +750,11 @@ export {
   createModerationProofRequest,
   getModerationProofRequestByLitebansId,
   updateModerationProofRequest,
-  getModerationProofRequestByMessageId
+  getModerationProofRequestByMessageId,
+
+  scheduleInterview,
+  updateInterviewStatus,
+  setInterviewVoiceChannel,
+  setInterviewMessage,
+  getScheduledInterviews
 };

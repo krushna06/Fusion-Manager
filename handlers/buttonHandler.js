@@ -5,6 +5,8 @@ import { handleStaffAppDecisionButton } from './buttons/staffAppDecisionButton.j
 import { handleStaffAppStartButton } from './buttons/staffAppStartButton.js';
 import { handleLOAButton } from './buttons/loaButton.js';
 import { handleProofButton } from './buttons/proofButton.js';
+import { showInterviewScheduleModal } from './modals/interviewScheduleModal.js';
+import { handleInterviewResponseButton } from './buttons/interviewResponseButton.js';
 import { PermissionsBitField } from 'discord.js';
 import config from '../config.js';
 
@@ -42,6 +44,16 @@ export async function handleButtonInteraction(interaction) {
     
     if (interaction.customId.startsWith('staff_close_')) {
       return await handleStaffAppDecisionButton(interaction);
+    }
+    
+    if (interaction.customId.startsWith('schedule_interview_')) {
+      return await showInterviewScheduleModal(interaction);
+    }
+    
+    if (interaction.customId.startsWith('interview_accept_') || 
+        interaction.customId.startsWith('interview_decline_') || 
+        interaction.customId.startsWith('interview_reschedule_')) {
+      return await handleInterviewResponseButton(interaction);
     }
     
     if (interaction.customId.startsWith('loa_explain_') || 

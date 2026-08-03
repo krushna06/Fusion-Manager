@@ -8,6 +8,7 @@ import { LinkerDb } from './database/linkerDb.js';
 import { LinkerReconciler } from './handlers/linkerReconciler.js';
 import { loadConfig } from './utils/linkerConfig.js';
 import { initLitebansPoller } from './handlers/litebansPoller.js';
+import { startInterviewScheduler } from './handlers/interviewScheduler.js';
 
 const client = new Client({
   intents: [
@@ -93,6 +94,8 @@ client.once('ready', async () => {
     await linkerReconciler.fullSweep();
     
     initLitebansPoller(client);
+    
+    startInterviewScheduler(client);
     
     setInterval(async () => {
       if (!linkerDb || !linkerReconciler) return;

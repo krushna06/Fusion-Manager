@@ -1,5 +1,6 @@
 import { handleLOAExplanationModal } from './modals/loaExplanationModal.js';
 import { handleProofSubmission } from './buttons/proofButton.js';
+import { showInterviewScheduleModal, handleInterviewScheduleModal } from './modals/interviewScheduleModal.js';
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, PermissionsBitField } from 'discord.js';
 import config from '../config.js';
 
@@ -73,6 +74,10 @@ export async function handleModalSubmit(interaction) {
     
     if (interaction.customId.startsWith('counter_modal_')) {
       return;
+    }
+    
+    if (interaction.customId.startsWith('interview_schedule_')) {
+      return await handleInterviewScheduleModal(interaction);
     }
     
     console.log('No handler found for modal:', interaction.customId);

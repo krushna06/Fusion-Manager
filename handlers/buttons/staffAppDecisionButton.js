@@ -108,6 +108,10 @@ export async function handleStaffAppDecisionButton(interaction) {
       const row = new ActionRowBuilder()
         .addComponents(
           new ButtonBuilder()
+            .setCustomId(`schedule_interview_${channelId}`)
+            .setLabel('Schedule Interview')
+            .setStyle(ButtonStyle.Primary),
+          new ButtonBuilder()
             .setCustomId(`staff_close_${channelId}`)
             .setLabel('Close Application')
             .setStyle(ButtonStyle.Secondary)
