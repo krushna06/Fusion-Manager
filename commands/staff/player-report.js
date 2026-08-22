@@ -37,6 +37,10 @@ export default {
         .setDescription('Reason for the report')
         .setRequired(true))
     .addStringOption(option => 
+      option.setName('duration')
+        .setDescription('Duration of the offense (for reference)')
+        .setRequired(true))
+    .addStringOption(option => 
       option.setName('proof')
         .setDescription('Proof link (YouTube, Imgur, postimages.org, or postimg.cc)')
         .setRequired(true)),
@@ -64,6 +68,7 @@ export default {
     
     const ign = interaction.options.getString('ign');
     const reason = interaction.options.getString('reason');
+    const duration = interaction.options.getString('duration');
     let proof = interaction.options.getString('proof');
     
     const allowedDomains = ['youtube.com', 'youtu.be', 'imgur.com', 'postimages.org', 'postimg.cc'];
@@ -83,7 +88,8 @@ export default {
       .addFields(
         { name: 'Reported By', value: `${interaction.user.tag} (${interaction.user.id})`, inline: true },
         { name: 'Player IGN', value: ign, inline: true },
-        { name: 'Reason', value: reason, inline: false }
+        { name: 'Reason', value: reason, inline: false },
+        { name: 'Duration', value: duration, inline: false }
       )
       .setImage(proof)
       .setTimestamp()
