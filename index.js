@@ -4,9 +4,8 @@ import { loadCommands } from './handlers/commandHandler.js';
 import { loadEvents } from './handlers/eventHandler.js';
 import { initDatabase } from './database/mainDb.js';
 import { info, error as logError, success, startupTable } from './utils/logger.js';
-import { LinkerDb } from './database/linkerDb.js';
+import { getSharedLinkerDb, getSharedLinkerConfig } from './database/linkerDb.js';
 import { LinkerReconciler } from './handlers/linkerReconciler.js';
-import { loadConfig } from './utils/linkerConfig.js';
 import { initLitebansPoller } from './handlers/litebansPoller.js';
 import { startInterviewScheduler } from './handlers/interviewScheduler.js';
 
@@ -29,17 +28,40 @@ async function init() {
     await initDatabase();
     
     try {
-      linkerConfig = loadConfig();
-      linkerDb = new LinkerDb(linkerConfig);
+      linkerConfig = getSharedLinkerConfig();
+      linkerDb = getSharedLinkerDb();
       
-      for (;;) {
+      const SCHEMA_ATTEMPTS = 12;
+      const SCHEMA_DELAY = 5000;
+      let schemaReady = false;
+
+      for (let attempt = 1; attempt <= SCHEMA_ATTEMPTS; attempt++) {
         try {
           await linkerDb.ensureSchema();
+          schemaReady = true;
           break;
         } catch (error) {
-          logError('Database not ready, retrying in 5s...', error);
-          await new Promise((resolve) => setTimeout(resolve, 5000));
+          const isConnLimit = error.code === 'ER_CON_COUNT_ERROR' || error.errno === 1040;
+
+          if (isConnLimit) {
+            logError(
+              `MySQL reports "Too many connections" (attempt ${attempt}/${SCHEMA_ATTEMPTS}). ` +
+              'This is a limit on the shared database host, not on the bot. Retrying...'
+            );
+          } else {
+            logError(`Database not ready (attempt ${attempt}/${SCHEMA_ATTEMPTS}), retrying in ${SCHEMA_DELAY / 1000}s...`, error);
+          }
+
+          if (attempt === SCHEMA_ATTEMPTS) {
+            logError('Database still unreachable after all retries; starting anyway so the bot can recover on its own.');
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, SCHEMA_DELAY));
         }
+      }
+
+      if (schemaReady) {
+        info('Linker database schema is ready');
       }
       
       linkerReconciler = new LinkerReconciler(client, linkerDb, linkerConfig);

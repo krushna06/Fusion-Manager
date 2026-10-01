@@ -1,5 +1,6 @@
 import mysql from 'mysql2/promise';
 import config from '../config.js';
+import { withRetry } from './mysqlUtil.js';
 
 let pool = null;
 
@@ -12,16 +13,25 @@ function getPool() {
       password: config.plan?.mysql?.password,
       database: config.plan?.mysql?.database || 's17_plan',
       waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0
+      connectionLimit: 2,
+      queueLimit: 0,
+      maxIdle: 1,
+      idleTimeout: 30000,
+      connectTimeout: 10000,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 10000
     });
   }
   return pool;
 }
 
+async function query(sql, params) {
+  const p = getPool();
+  return withRetry(() => p.execute(sql, params));
+}
+
 async function getPlayerByUUID(uuid) {
-  const pool = getPool();
-  const [rows] = await pool.execute(
+  const [rows] = await query(
     'SELECT * FROM plan_users WHERE uuid = ?',
     [uuid]
   );
@@ -29,8 +39,7 @@ async function getPlayerByUUID(uuid) {
 }
 
 async function getPlayerByName(name) {
-  const pool = getPool();
-  const [rows] = await pool.execute(
+  const [rows] = await query(
     'SELECT * FROM plan_users WHERE name = ?',
     [name]
   );
@@ -38,8 +47,7 @@ async function getPlayerByName(name) {
 }
 
 async function getPlayerPlaytime(uuid) {
-  const pool = getPool();
-  const [rows] = await pool.execute(
+  const [rows] = await query(
     `SELECT 
       SUM(session_end - session_start) as total_playtime,
       COUNT(*) as session_count,
@@ -53,8 +61,7 @@ async function getPlayerPlaytime(uuid) {
 }
 
 async function getPlayerKills(uuid) {
-  const pool = getPool();
-  const [rows] = await pool.execute(
+  const [rows] = await query(
     `SELECT 
       COUNT(*) as total_kills,
       COUNT(DISTINCT victim_uuid) as unique_victims
@@ -66,8 +73,7 @@ async function getPlayerKills(uuid) {
 }
 
 async function getPlayerDeaths(uuid) {
-  const pool = getPool();
-  const [rows] = await pool.execute(
+  const [rows] = await query(
     `SELECT COUNT(*) as total_deaths
      FROM plan_kills 
      WHERE victim_uuid = ?`,
@@ -77,8 +83,7 @@ async function getPlayerDeaths(uuid) {
 }
 
 async function getPlayerVotes(uuid) {
-  const pool = getPool();
-  const [rows] = await pool.execute(
+  const [rows] = await query(
     'SELECT SUM(votes) as total_votes FROM plan_votes WHERE user_name = (SELECT name FROM plan_users WHERE uuid = ?)',
     [uuid]
   );
@@ -86,8 +91,7 @@ async function getPlayerVotes(uuid) {
 }
 
 async function getPlayerNicknames(uuid) {
-  const pool = getPool();
-  const [rows] = await pool.execute(
+  const [rows] = await query(
     'SELECT nickname, last_used FROM plan_nicknames WHERE uuid = ? ORDER BY last_used DESC',
     [uuid]
   );
@@ -95,8 +99,7 @@ async function getPlayerNicknames(uuid) {
 }
 
 async function getPlayerGeolocations(uuid) {
-  const pool = getPool();
-  const [rows] = await pool.execute(
+  const [rows] = await query(
     `SELECT geolocation, last_used 
      FROM plan_geolocations 
      WHERE user_id = (SELECT id FROM plan_users WHERE uuid = ?)
@@ -107,8 +110,7 @@ async function getPlayerGeolocations(uuid) {
 }
 
 async function getPossibleAlts(uuid) {
-  const pool = getPool();
-  const [rows] = await pool.execute(
+  const [rows] = await query(
     `SELECT DISTINCT u.uuid, u.name, g.geolocation
      FROM plan_geolocations g
      JOIN plan_users u ON g.user_id = u.id
@@ -127,8 +129,7 @@ async function getPossibleAlts(uuid) {
 }
 
 async function getPlayerPing(uuid) {
-  const pool = getPool();
-  const [rows] = await pool.execute(
+  const [rows] = await query(
     `SELECT 
       AVG(avg_ping) as avg_ping,
       MAX(max_ping) as max_ping,
@@ -141,8 +142,7 @@ async function getPlayerPing(uuid) {
 }
 
 async function getPlayerAccountType(uuid) {
-  const pool = getPool();
-  const [rows] = await pool.execute(
+  const [rows] = await query(
     'SELECT registered FROM plan_users WHERE uuid = ?',
     [uuid]
   );
@@ -154,9 +154,8 @@ async function getPlayerAccountType(uuid) {
 }
 
 async function getPlayerActivity(uuid, days = 7) {
-  const pool = getPool();
   const milliseconds = days * 24 * 60 * 60 * 1000;
-  const [rows] = await pool.execute(
+  const [rows] = await query(
     `SELECT 
       SUM(session_end - session_start) as total_playtime,
       COUNT(*) as session_count
@@ -170,6 +169,7 @@ async function getPlayerActivity(uuid, days = 7) {
 
 export {
   getPool,
+  query,
   getPlayerByUUID,
   getPlayerByName,
   getPlayerPlaytime,

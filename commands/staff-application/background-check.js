@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder, PermissionsBitField } from 'discord.js';
 import config from '../../config.js';
-import { LinkerDb } from '../../database/linkerDb.js';
+import { getSharedLinkerDb } from '../../database/linkerDb.js';
 import { getPlayerByName, getPlayerPlaytime, getPlayerKills, getPlayerDeaths, getPlayerVotes, getPlayerPing, getPlayerGeolocations, getPlayerAccountType, getPlayerActivity } from '../../database/planDb.js';
 import { getPlayerBans, getPlayerMutes, getPlayerKicks, getPlayerWarnings, getActiveBan, getActiveMute } from '../../database/litebansDb.js';
 
@@ -101,17 +101,18 @@ export default {
       );
     }
 
-    try {
-      if (discordUser && !minecraftUUID) {
-        const linkerDb = new LinkerDb(config.linker);
-        const link = await linkerDb.getLinkByDiscord(discordUser.id);
+    let linkLookupFailed = false;
+    if (discordUser && !minecraftUUID) {
+      try {
+        const link = await getSharedLinkerDb().getLinkByDiscord(discordUser.id);
         if (link) {
           minecraftUsername = link.username;
           minecraftUUID = link.uuid;
         }
+      } catch (err) {
+        linkLookupFailed = true;
+        console.error('Error fetching link from database:', err.message);
       }
-    } catch (err) {
-      console.error('Error fetching link from database:', err);
     }
 
     if (minecraftUsername) {
@@ -127,7 +128,11 @@ export default {
       embed.addFields(
         { name: '══════════════════════════════════', value: '\u200b', inline: false },
         { name: '**⛏️ Minecraft Info**', value: '\u200b', inline: false },
-        { name: 'Status', value: 'Not linked', inline: true }
+        {
+          name: 'Status',
+          value: linkLookupFailed ? 'Lookup failed - database unavailable, retry shortly' : 'Not linked',
+          inline: true
+        }
       );
     }
 

@@ -1,25 +1,132 @@
 import { getStaffApplicationByChannel, updateApplicationQuestionStep, updateApplicationState, updateApplicationResponses } from '../../../database/mainDb.js';
 import { deleteStaffApplication } from '../../../database/models/staffApplication.js';
 import { staffApplicationQuestions } from '../../../utils/staffApplicationQuestions.js';
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { buildStaffApplicationEmbeds, buildStaffApplicationText } from '../../../utils/staffApplicationEmbeds.js';
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder } from 'discord.js';
 
 export const questionTimestamps = new Map();
 
 const processingChannels = new Set();
 
+const SUBMIT_MARKER = 'New staff application submitted!';
+
+function clearChannelTimestamps(channelId) {
+  for (const [key] of questionTimestamps) {
+    if (key.startsWith(`${channelId}_`)) {
+      questionTimestamps.delete(key);
+    }
+  }
+}
+
+function parseResponses(raw) {
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    console.error('Error parsing staff application responses:', error);
+    return {};
+  }
+}
+
+async function hasSubmittedMessage(channel) {
+  try {
+    const messages = await channel.messages.fetch({ limit: 25 });
+    return messages.some(msg => msg.author.id === channel.client.user.id && msg.content === SUBMIT_MARKER);
+  } catch (error) {
+    console.error('Error checking for existing submission message:', error);
+    return false;
+  }
+}
+
+function buildDecisionRow(channelId) {
+  return new ActionRowBuilder()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId(`staff_accept_${channelId}`)
+        .setLabel('Accept')
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId(`staff_reject_${channelId}`)
+        .setLabel('Reject')
+        .setStyle(ButtonStyle.Danger),
+      new ButtonBuilder()
+        .setCustomId(`staff_bgcheck_${channelId}`)
+        .setLabel('Background Check')
+        .setStyle(ButtonStyle.Primary)
+    );
+}
+
+async function postAsFile(channel, responses, author) {
+  const buffer = Buffer.from(buildStaffApplicationText(responses, author), 'utf-8');
+  return channel.send({
+    content: 'The application embeds could not be posted, so the answers are attached as a text file instead.',
+    files: [new AttachmentBuilder(buffer, { name: 'staff-application-responses.txt' })]
+  });
+}
+
+async function finalizeApplication(message, responses) {
+  const channel = message.channel;
+
+  if (await hasSubmittedMessage(channel)) {
+    await updateApplicationState(channel.id, 'submitted');
+    await updateApplicationQuestionStep(channel.id, -1);
+    clearChannelTimestamps(channel.id);
+    return;
+  }
+
+  let posted = false;
+  try {
+    const embeds = buildStaffApplicationEmbeds(responses, message.author, {
+      footerText: `Application channel: ${channel.name}`
+    });
+    await channel.send({
+      content: SUBMIT_MARKER,
+      embeds,
+      components: [buildDecisionRow(channel.id)]
+    });
+    posted = true;
+  } catch (error) {
+    console.error('Error sending staff application summary embed:', error);
+    try {
+      await postAsFile(channel, responses, message.author);
+      posted = true;
+    } catch (fileError) {
+      console.error('Error sending staff application responses as file:', fileError);
+    }
+  }
+
+  await updateApplicationState(channel.id, 'submitted');
+  await updateApplicationQuestionStep(channel.id, -1);
+  clearChannelTimestamps(channel.id);
+
+  if (!posted) {
+    await channel.send({
+      content: `<@${message.author.id}> Your answers were saved, but the summary could not be posted. Staff can retrieve them with \`/staffapp-view\` using your user ID (\`${message.author.id}\`).`
+    }).catch(console.error);
+  }
+
+  const confirmEmbed = new EmbedBuilder()
+    .setTitle('Staff Application Submitted')
+    .setColor(0x5865F2)
+    .setDescription(`<@${message.author.id}> Your staff application has been submitted. The staff team will review it and get back to you soon.`)
+    .setTimestamp();
+
+  await channel.send({ content: `<@${message.author.id}>`, embeds: [confirmEmbed] }).catch(console.error);
+}
+
 export async function handleStaffApplicationMessage(message) {
   const channelId = message.channel.id;
-  
+
   if (processingChannels.has(channelId)) {
     await message.delete().catch(console.error);
     return;
   }
-  
+
   processingChannels.add(channelId);
-  
+
   try {
     const application = await getStaffApplicationByChannel(channelId);
-    
+
     if (!application) {
       try {
         const channel = await message.guild.channels.fetch(channelId).catch(() => null);
@@ -45,7 +152,7 @@ export async function handleStaffApplicationMessage(message) {
     }
 
     const currentStep = application.current_question_step || 0;
-    
+
     if (currentStep === 0) {
       return;
     }
@@ -57,17 +164,17 @@ export async function handleStaffApplicationMessage(message) {
       return;
     }
 
-    const questionKey = `${message.channel.id}_${currentStep}`;
+    const questionKey = `${channelId}_${currentStep}`;
     let questionAskedAt = questionTimestamps.get(questionKey);
-    
+
     if (!questionAskedAt) {
       try {
         const messages = await message.channel.messages.fetch({ limit: 20 });
-        const questionMessage = messages.find(msg => 
-          msg.author.id === message.client.user.id && 
+        const questionMessage = messages.find(msg =>
+          msg.author.id === message.client.user.id &&
           msg.content.includes(`**Question ${currentStep}/`)
         );
-        
+
         if (!questionMessage) {
           const sentMessage = await message.channel.send({
             content: `**Question ${currentStep}/${staffApplicationQuestions.length}**: ${currentQuestion.label}`
@@ -75,254 +182,66 @@ export async function handleStaffApplicationMessage(message) {
           questionTimestamps.set(questionKey, sentMessage.createdTimestamp);
           await message.delete().catch(console.error);
           return;
-        } else {
-          questionTimestamps.set(questionKey, questionMessage.createdTimestamp);
-          questionAskedAt = questionMessage.createdTimestamp;
         }
+
+        questionTimestamps.set(questionKey, questionMessage.createdTimestamp);
+        questionAskedAt = questionMessage.createdTimestamp;
       } catch (fetchError) {
-        questionTimestamps.set(questionKey, Date.now());
-        questionAskedAt = Date.now();
-        questionTimestamps.set(questionKey, Date.now());
-        questionAskedAt = Date.now();
+        console.error('Error resolving question timestamp:', fetchError);
+        questionTimestamps.set(questionKey, message.createdTimestamp);
+        questionAskedAt = message.createdTimestamp;
       }
     }
-    
+
     if (message.createdTimestamp < questionAskedAt) {
       await message.delete().catch(console.error);
       return;
     }
 
-    let responses = {};
-    if (application.responses) {
-      try {
-        responses = JSON.parse(application.responses);
-      } catch (e) {
-        responses = {};
-      }
+    const responses = parseResponses(application.responses);
+    const nextStep = currentStep + 1;
+    const isFinalQuestion = nextStep > staffApplicationQuestions.length;
+
+    const alreadyAnswered = Boolean(responses[currentQuestion.id]);
+
+    if (!alreadyAnswered) {
+      responses[currentQuestion.id] = message.content;
+      await updateApplicationResponses(channelId, responses);
     }
 
-    if (responses[currentQuestion.id]) {
-      const nextStep = currentStep + 1;
-      
-      if (nextStep > staffApplicationQuestions.length) {
-        await updateApplicationState(message.channel.id, 'submitted');
-        await updateApplicationQuestionStep(message.channel.id, -1);
-        
-        for (const [key] of questionTimestamps) {
-          if (key.startsWith(`${message.channel.id}_`)) {
-            questionTimestamps.delete(key);
-          }
-        }
-        
-        const messages = await message.channel.messages.fetch({ limit: 5 });
-        const alreadySubmitted = messages.some(msg => 
-          msg.author.id === message.client.user.id && 
-          msg.content === 'New staff application submitted!'
-        );
-        
-        if (alreadySubmitted) {
-          return;
-        }
-        
-        const embed = new EmbedBuilder()
-          .setTitle('Staff Application Submitted')
-          .setColor(0x5865F2)
-          .setDescription(`<@${message.author.id}> Your staff application has been submitted. The staff team will review it and get back to you soon.`)
-          .setTimestamp();
-
-        const row = new ActionRowBuilder()
-          .addComponents(
-            new ButtonBuilder()
-              .setCustomId(`staff_accept_${message.channel.id}`)
-              .setLabel('Accept')
-              .setStyle(ButtonStyle.Success),
-            new ButtonBuilder()
-              .setCustomId(`staff_reject_${message.channel.id}`)
-              .setLabel('Reject')
-              .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-              .setCustomId(`staff_bgcheck_${message.channel.id}`)
-              .setLabel('Background Check')
-              .setStyle(ButtonStyle.Primary)
-        );
-
-        const applicationEmbeds = generateApplicationEmbed(responses, message.author);
-        
-        await message.channel.send({
-          content: 'New staff application submitted!',
-          embeds: applicationEmbeds,
-          components: [row]
-        });
-
-        await message.channel.send({
-          content: `<@${message.author.id}>`,
-          embeds: [embed]
-        });
-      } else {
-        await updateApplicationQuestionStep(message.channel.id, nextStep);
-        const nextQuestion = staffApplicationQuestions[nextStep - 1];
-        
-        const sentMessage = await message.channel.send({
-          content: `**Question ${nextStep}/${staffApplicationQuestions.length}**: ${nextQuestion.label}`
-        });
-        
-        const nextQuestionKey = `${message.channel.id}_${nextStep}`;
-        questionTimestamps.set(nextQuestionKey, sentMessage.createdTimestamp);
-      }
+    if (isFinalQuestion) {
+      await finalizeApplication(message, responses);
       return;
     }
 
-    responses[currentQuestion.id] = message.content;
-    await updateApplicationResponses(message.channel.id, responses);
-
-    try {
-      const messages = await message.channel.messages.fetch({ limit: 10 });
-      const questionMessage = messages.find(msg => 
-        msg.author.id === message.client.user.id && 
-        msg.content.includes(`**Question ${currentStep}/`)
-      );
-      if (questionMessage) {
-        await questionMessage.delete().catch(console.error);
-      }
-    } catch (cleanupError) {
-    }
-
-    await message.delete().catch(console.error);
-
-    const nextStep = currentStep + 1;
-
-    if (nextStep > staffApplicationQuestions.length) {
-      await updateApplicationState(message.channel.id, 'submitted');
-      await updateApplicationQuestionStep(message.channel.id, -1);
-      
-      for (const [key] of questionTimestamps) {
-        if (key.startsWith(`${message.channel.id}_`)) {
-          questionTimestamps.delete(key);
+    if (!alreadyAnswered) {
+      try {
+        const messages = await message.channel.messages.fetch({ limit: 10 });
+        const questionMessage = messages.find(msg =>
+          msg.author.id === message.client.user.id &&
+          msg.content.includes(`**Question ${currentStep}/`)
+        );
+        if (questionMessage) {
+          await questionMessage.delete().catch(console.error);
         }
+      } catch (cleanupError) {
+        console.error('Error cleaning up question message:', cleanupError);
       }
-      
-      const messages = await message.channel.messages.fetch({ limit: 5 });
-      const alreadySubmitted = messages.some(msg => 
-        msg.author.id === message.client.user.id && 
-        msg.content === 'New staff application submitted!'
-      );
-      
-      if (alreadySubmitted) {
-        return;
-      }
-      
-      const embed = new EmbedBuilder()
-        .setTitle('Staff Application Submitted')
-        .setColor(0x5865F2)
-        .setDescription(`<@${message.author.id}> Your staff application has been submitted. The staff team will review it and get back to you soon.`)
-        .setTimestamp();
 
-      const row = new ActionRowBuilder()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId(`staff_accept_${message.channel.id}`)
-            .setLabel('Accept')
-            .setStyle(ButtonStyle.Success),
-          new ButtonBuilder()
-            .setCustomId(`staff_reject_${message.channel.id}`)
-            .setLabel('Reject')
-            .setStyle(ButtonStyle.Danger),
-          new ButtonBuilder()
-            .setCustomId(`staff_bgcheck_${message.channel.id}`)
-            .setLabel('Background Check')
-            .setStyle(ButtonStyle.Primary)
-      );
-
-      const applicationEmbeds = generateApplicationEmbed(responses, message.author);
-      
-      await message.channel.send({
-        content: 'New staff application submitted!',
-        embeds: applicationEmbeds,
-        components: [row]
-      });
-
-      await message.channel.send({
-        content: `<@${message.author.id}>`,
-        embeds: [embed]
-      });
-    } else {
-      await updateApplicationQuestionStep(message.channel.id, nextStep);
-      const nextQuestion = staffApplicationQuestions[nextStep - 1];
-      
-      const sentMessage = await message.channel.send({
-        content: `**Question ${nextStep}/${staffApplicationQuestions.length}**: ${nextQuestion.label}`
-      });
-      
-      const nextQuestionKey = `${message.channel.id}_${nextStep}`;
-      questionTimestamps.set(nextQuestionKey, sentMessage.createdTimestamp);
+      await message.delete().catch(console.error);
     }
+
+    await updateApplicationQuestionStep(channelId, nextStep);
+    const nextQuestion = staffApplicationQuestions[nextStep - 1];
+
+    const sentMessage = await message.channel.send({
+      content: `**Question ${nextStep}/${staffApplicationQuestions.length}**: ${nextQuestion.label}`
+    });
+
+    questionTimestamps.set(`${channelId}_${nextStep}`, sentMessage.createdTimestamp);
+  } catch (error) {
+    console.error('Error handling staff application message:', error);
   } finally {
     processingChannels.delete(channelId);
   }
-}
-
-function generateApplicationEmbed(responses, user) {
-  const basicInfoQuestions = staffApplicationQuestions.slice(0, 10);
-  const timeAccountsQuestions = staffApplicationQuestions.slice(10, 16);
-  const experienceAboutQuestions = staffApplicationQuestions.slice(16, 22);
-  const scenarioQuestions = staffApplicationQuestions.slice(22);
-  
-  const truncateFieldName = (name) => {
-    if (name.length <= 256) return name;
-    return name.substring(0, 253) + '...';
-  };
-  
-  const truncateFieldValue = (value) => {
-    if (!value) return 'Not provided';
-    if (value.length <= 1024) return value;
-    return value.substring(0, 1021) + '...';
-  };
-  
-  const embed1 = new EmbedBuilder()
-    .setTitle(`Staff Application - ${responses.ign || user.username}`)
-    .setColor(0x5865F2)
-    .addFields(
-      { name: 'Discord User', value: `<@${user.id}>`, inline: false },
-      ...basicInfoQuestions.map(q => ({
-        name: truncateFieldName(q.label),
-        value: truncateFieldValue(q.id === 'ign' ? (responses.ign || responses.minecraft_username) : responses[q.id]),
-        inline: false
-      }))
-    )
-    .setTimestamp();
-
-  const embed2 = new EmbedBuilder()
-    .setTitle('Staff Application - Time & Accounts')
-    .setColor(0x5865F2)
-    .addFields(
-      ...timeAccountsQuestions.map(q => ({
-        name: truncateFieldName(q.label),
-        value: truncateFieldValue(responses[q.id]),
-        inline: false
-      }))
-    );
-
-  const embed3 = new EmbedBuilder()
-    .setTitle('Staff Application - Experience & About You')
-    .setColor(0x5865F2)
-    .addFields(
-      ...experienceAboutQuestions.map(q => ({
-        name: truncateFieldName(q.label),
-        value: truncateFieldValue(responses[q.id]),
-        inline: false
-      }))
-    );
-
-  const embed4 = new EmbedBuilder()
-    .setTitle('Staff Application - Scenarios & Commitment')
-    .setColor(0x5865F2)
-    .addFields(
-      ...scenarioQuestions.map(q => ({
-        name: truncateFieldName(q.label),
-        value: truncateFieldValue(responses[q.id]),
-        inline: false
-      }))
-    );
-
-  return [embed1, embed2, embed3, embed4];
 }

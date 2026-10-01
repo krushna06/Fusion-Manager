@@ -1,4 +1,5 @@
 import mysql from "mysql2/promise";
+import { loadConfig } from "../utils/linkerConfig.js";
 
 export class LinkerDb {
     pool;
@@ -12,6 +13,13 @@ export class LinkerDb {
             password: config.mysql.password,
             database: config.mysql.database,
             connectionLimit: 3,
+            waitForConnections: true,
+            queueLimit: 0,
+            maxIdle: 1,
+            idleTimeout: 60000,
+            connectTimeout: 10000,
+            enableKeepAlive: true,
+            keepAliveInitialDelay: 30000,
             supportBigNumbers: true,
             bigNumberStrings: false,
         });
@@ -275,4 +283,20 @@ export class LinkerDb {
     async close() {
         await this.pool.end();
     }
+}
+
+let sharedLinkerDb = null;
+let sharedLinkerConfig = null;
+
+export function getSharedLinkerDb() {
+    if (!sharedLinkerDb) {
+        sharedLinkerConfig = loadConfig();
+        sharedLinkerDb = new LinkerDb(sharedLinkerConfig);
+    }
+    return sharedLinkerDb;
+}
+
+export function getSharedLinkerConfig() {
+    getSharedLinkerDb();
+    return sharedLinkerConfig;
 }

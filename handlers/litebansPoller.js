@@ -1,60 +1,97 @@
-import { getPool } from '../database/litebansDb.js';
-import { createModerationProofRequest, getModerationProofRequestByLitebansId } from '../database/mainDb.js';
+import { query } from '../database/litebansDb.js';
+import {
+  createModerationProofRequest,
+  getModerationProofRequestByLitebansId,
+  getBotState,
+  setBotState
+} from '../database/mainDb.js';
 import { getPlayerByUUID } from '../database/planDb.js';
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import config from '../config.js';
-import { LinkerDb } from '../database/linkerDb.js';
+import { getSharedLinkerDb } from '../database/linkerDb.js';
 
-let lastBanId = 0;
-let lastMuteId = 0;
-let lastKickId = 0;
-let lastWarningId = 0;
+const POLL_INTERVAL = 30000;
+const PUNISHMENT_TYPES = ['bans', 'mutes', 'kicks', 'warnings'];
+const STATE_PREFIX = 'litebans_last_id_';
 
-async function getLatestPunishmentIds() {
-  const pool = getPool();
-  
-  try {
-    const [banResult] = await pool.execute('SELECT MAX(id) as max_id FROM litebans_bans');
-    const [muteResult] = await pool.execute('SELECT MAX(id) as max_id FROM litebans_mutes');
-    const [kickResult] = await pool.execute('SELECT MAX(id) as max_id FROM litebans_kicks');
-    const [warningResult] = await pool.execute('SELECT MAX(id) as max_id FROM litebans_warnings');
-    
-    return {
-      ban: banResult[0]?.max_id || 0,
-      mute: muteResult[0]?.max_id || 0,
-      kick: kickResult[0]?.max_id || 0,
-      warning: warningResult[0]?.max_id || 0
-    };
-  } catch (error) {
-    console.error('Error getting latest punishment IDs:', error);
-    return { ban: 0, mute: 0, kick: 0, warning: 0 };
+const MAX_PER_POLL = 25;
+
+const RUNTIME_START = Date.now();
+
+const lastIds = {
+  bans: 0,
+  mutes: 0,
+  kicks: 0,
+  warnings: 0
+};
+
+const TABLES = {
+  bans: 'litebans_bans',
+  mutes: 'litebans_mutes',
+  kicks: 'litebans_kicks',
+  warnings: 'litebans_warnings'
+};
+
+const seeded = {
+  bans: false,
+  mutes: false,
+  kicks: false,
+  warnings: false
+};
+
+function shortType(type) {
+  return type.replace(/s$/, '');
+}
+
+async function loadLastIds() {
+  for (const type of PUNISHMENT_TYPES) {
+    const stored = await getBotState(`${STATE_PREFIX}${type}`);
+    if (stored === null || stored === undefined) {
+      lastIds[type] = 0;
+      seeded[type] = false;
+    } else {
+      lastIds[type] = Number(stored) || 0;
+      seeded[type] = true;
+    }
+  }
+  return lastIds;
+}
+
+async function saveLastIds() {
+  for (const type of PUNISHMENT_TYPES) {
+    await setBotState(`${STATE_PREFIX}${type}`, lastIds[type]);
   }
 }
 
-async function getNewPunishments(type, lastId) {
-  const pool = getPool();
-  const tableName = `litebans_${type}`;
-  
+async function getLatestPunishmentIds() {
   try {
-    let query;
-    if (type === 'warnings') {
-      query = `SELECT id, uuid, reason, banned_by_name, time, warned 
-               FROM ${tableName} 
-               WHERE id > ? 
-               ORDER BY id ASC`;
-    } else {
-      query = `SELECT id, uuid, reason, banned_by_name, time, until, active 
-               FROM ${tableName} 
-               WHERE id > ? 
-               ORDER BY id ASC`;
+    const result = {};
+    for (const type of PUNISHMENT_TYPES) {
+      const [rows] = await query(
+        `SELECT MAX(id) as max_id FROM ${TABLES[type]} WHERE time >= ?`,
+        [RUNTIME_START]
+      );
+      result[type] = Number(rows[0]?.max_id) || 0;
     }
-    
-    const [rows] = await pool.execute(query, [lastId]);
-    return rows || [];
+    return result;
   } catch (error) {
-    console.error(`Error getting new ${type}:`, error);
-    return [];
+    console.error('Error getting latest punishment IDs:', error.message);
+    return null;
   }
+}
+
+async function getNewPunishments(type, lastId, limit = MAX_PER_POLL) {
+  const columns = type === 'warnings'
+    ? 'id, uuid, reason, banned_by_name, time, warned'
+    : 'id, uuid, reason, banned_by_name, time, until, active';
+
+  const [rows] = await query(
+    `SELECT ${columns} FROM ${TABLES[type]}
+     WHERE id > ? AND time >= ?
+     ORDER BY id ASC LIMIT ?`,
+    [lastId, RUNTIME_START, limit]
+  );
+  return rows || [];
 }
 
 async function getDirectImageUrl(url) {
@@ -115,39 +152,37 @@ async function createProofEmbed(punishment, type, staffDiscordId, playerName) {
 
 async function handleNewPunishment(punishment, type, client) {
   const litebansId = `${type}_${punishment.id}`;
-  
+
+  if (punishment.banned_by_name === 'Console') {
+    return;
+  }
+
   const existing = await getModerationProofRequestByLitebansId(litebansId);
   if (existing) {
     return;
   }
-  
-  if (punishment.banned_by_name === 'Console') {
-    // console.log(`Ignoring ${type} ${litebansId} - caused by Console (anticheat/system)`);
-    return;
-  }
-  
+
   if (!config.channels.staffServer?.playerReportsChannelId) {
     console.error('Player reports channel ID not configured');
     return;
   }
-  
+
   const channel = await client.channels.fetch(config.channels.staffServer.playerReportsChannelId).catch(() => null);
   if (!channel) {
     console.error('Player reports channel not found');
     return;
   }
-  
+
   let staffDiscordId = null;
   try {
-    const linkerDb = new LinkerDb(config.linker);
-    const staffLink = await linkerDb.getLinkByUsername(punishment.banned_by_name);
+    const staffLink = await getSharedLinkerDb().getLinkByUsername(punishment.banned_by_name);
     if (staffLink) {
       staffDiscordId = staffLink.discord_id;
     }
   } catch (error) {
-    console.error('Error fetching staff link:', error);
+    console.error(`Could not resolve staff link for ${litebansId}:`, error.message);
   }
-  
+
   let playerName = punishment.uuid;
   try {
     const player = await getPlayerByUUID(punishment.uuid);
@@ -155,20 +190,20 @@ async function handleNewPunishment(punishment, type, client) {
       playerName = player.name;
     }
   } catch (error) {
-    console.error('Error fetching player from plan database:', error);
+    console.error(`Could not resolve player name for ${litebansId}:`, error.message);
   }
-  
+
   const { embed, components } = await createProofEmbed(punishment, type, staffDiscordId, playerName);
-  
+
   const staffMention = staffDiscordId ? `<@${staffDiscordId}>` : punishment.banned_by_name;
-  
+
   try {
     const message = await channel.send({
       content: `${staffMention} Provide proof for ${type} on ${playerName}.`,
       embeds: [embed],
       components
     });
-    
+
     await createModerationProofRequest(
       litebansId,
       type,
@@ -180,63 +215,70 @@ async function handleNewPunishment(punishment, type, client) {
       message.id,
       channel.id
     );
-    
-    // console.log(`Created proof request for ${type} ${litebansId}`);
   } catch (error) {
     console.error('Error creating proof request:', error);
   }
 }
 
+async function pollOnce(client) {
+  const latest = await getLatestPunishmentIds();
+
+  if (!latest) {
+    return;
+  }
+
+  let announced = 0;
+  let activatedAny = false;
+
+  for (const type of PUNISHMENT_TYPES) {
+    if (!seeded[type]) {
+      lastIds[type] = 0;
+      seeded[type] = true;
+      activatedAny = true;
+    }
+
+    if (seeded[type] && latest[type] <= lastIds[type]) {
+      continue;
+    }
+
+    let rows;
+    try {
+      rows = await getNewPunishments(type, lastIds[type]);
+    } catch (error) {
+      console.error(`Error fetching new ${type}:`, error.message);
+      continue;
+    }
+
+    for (const punishment of rows) {
+      await handleNewPunishment(punishment, shortType(type), client);
+      lastIds[type] = punishment.id;
+      announced++;
+    }
+
+    if (rows.length === 0) {
+      lastIds[type] = latest[type];
+    }
+  }
+
+  if (announced > 0 || activatedAny) {
+    await saveLastIds().catch(error =>
+      console.error('Error saving LiteBans poller state:', error.message)
+    );
+  }
+}
+
 export async function initLitebansPoller(client) {
-  console.log('Initializing LiteBans poller...');
-  
-  const latestIds = await getLatestPunishmentIds();
-  lastBanId = latestIds.ban;
-  lastMuteId = latestIds.mute;
-  lastKickId = latestIds.kick;
-  lastWarningId = latestIds.warning;
-  
-  // console.log(`Starting from IDs - Ban: ${lastBanId}, Mute: ${lastMuteId}, Kick: ${lastKickId}, Warning: ${lastWarningId}`);
-  
+  await loadLastIds().catch(error =>
+    console.error('Error loading LiteBans poller state:', error.message)
+  );
+
   setInterval(async () => {
     try {
-      const latestIds = await getLatestPunishmentIds();
-      
-      if (latestIds.ban > lastBanId) {
-        const newBans = await getNewPunishments('bans', lastBanId);
-        for (const ban of newBans) {
-          await handleNewPunishment(ban, 'ban', client);
-        }
-        lastBanId = latestIds.ban;
-      }
-      
-      if (latestIds.mute > lastMuteId) {
-        const newMutes = await getNewPunishments('mutes', lastMuteId);
-        for (const mute of newMutes) {
-          await handleNewPunishment(mute, 'mute', client);
-        }
-        lastMuteId = latestIds.mute;
-      }
-      
-      if (latestIds.kick > lastKickId) {
-        const newKicks = await getNewPunishments('kicks', lastKickId);
-        for (const kick of newKicks) {
-          await handleNewPunishment(kick, 'kick', client);
-        }
-        lastKickId = latestIds.kick;
-      }
-      
-      if (latestIds.warning > lastWarningId) {
-        const newWarnings = await getNewPunishments('warnings', lastWarningId);
-        for (const warning of newWarnings) {
-          await handleNewPunishment(warning, 'warning', client);
-        }
-        lastWarningId = latestIds.warning;
-      }
+      await pollOnce(client);
     } catch (error) {
       console.error('Error in LiteBans poller:', error);
     }
-  }, 30000);
+  }, POLL_INTERVAL);
 }
 
 export { getDirectImageUrl };

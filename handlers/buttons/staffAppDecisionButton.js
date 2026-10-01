@@ -3,7 +3,7 @@ import { deleteStaffApplication } from '../../database/models/staffApplication.j
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, AttachmentBuilder, PermissionsBitField } from 'discord.js';
 import { generateFromMessages } from 'discord-html-transcripts';
 import config from '../../config.js';
-import { LinkerDb } from '../../database/linkerDb.js';
+import { getSharedLinkerDb } from '../../database/linkerDb.js';
 import { getPlayerByName, getPlayerPlaytime, getPlayerKills, getPlayerDeaths, getPlayerVotes, getPlayerPing, getPlayerGeolocations, getPlayerAccountType, getPlayerActivity } from '../../database/planDb.js';
 import { getPlayerBans, getPlayerMutes, getPlayerKicks, getPlayerWarnings, getActiveBan, getActiveMute } from '../../database/litebansDb.js';
 
@@ -138,16 +138,17 @@ export async function handleStaffAppDecisionButton(interaction) {
 
       let minecraftUsername = null;
       let minecraftUUID = null;
+      let linkLookupFailed = false;
 
       try {
-        const linkerDb = new LinkerDb(config.linker);
-        const link = await linkerDb.getLinkByDiscord(targetUser.id);
+        const link = await getSharedLinkerDb().getLinkByDiscord(targetUser.id);
         if (link) {
           minecraftUsername = link.username;
           minecraftUUID = link.uuid;
         }
       } catch (err) {
-        console.error('Error fetching link from database:', err);
+        linkLookupFailed = true;
+        console.error('Error fetching link from database:', err.message);
       }
       
       if (!minecraftUsername && application?.responses) {
@@ -167,7 +168,7 @@ export async function handleStaffAppDecisionButton(interaction) {
           { name: '**👤 Discord Info**', value: '\u200b', inline: false },
           { name: 'User ID', value: targetUser.id, inline: true },
           { name: 'Account Created', value: `<t:${Math.floor(targetUser.createdTimestamp / 1000)}:R>`, inline: true },
-          { name: 'Minecraft Username', value: minecraftUsername || 'Not linked', inline: true }
+          { name: 'Minecraft Username', value: minecraftUsername || (linkLookupFailed ? 'Lookup failed - database unavailable' : 'Not linked'), inline: true }
         );
 
       if (minecraftUsername) {

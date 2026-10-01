@@ -149,6 +149,13 @@ async function initDatabase() {
     )
   `);
 
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS bot_state (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    )
+  `);
+
   const loaPragma = await db.all(`PRAGMA table_info(loa_settings)`);
   if (loaPragma.some(col => col.name === 'manager_role_id') && !loaPragma.some(col => col.name === 'manager_role_ids')) {
     await db.exec(`ALTER TABLE loa_settings RENAME COLUMN manager_role_id TO manager_role_ids`);
@@ -244,6 +251,21 @@ async function initDatabase() {
   }
 
   success('Database initialized successfully');
+}
+
+async function getBotState(key, fallback = null) {
+  const db = await dbPromise;
+  const row = await db.get(`SELECT value FROM bot_state WHERE key = ?`, [key]);
+  return row ? row.value : fallback;
+}
+
+async function setBotState(key, value) {
+  const db = await dbPromise;
+  await db.run(
+    `INSERT INTO bot_state (key, value) VALUES (?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    [key, String(value)]
+  );
 }
 
 async function addBugReport(messageId, channelId, userId) {
@@ -417,6 +439,14 @@ async function getStaffApplicationByUser(userId) {
   const db = await dbPromise;
   return await db.get(
     `SELECT * FROM staff_applications WHERE staff_id = ? ORDER BY created_at DESC LIMIT 1`,
+    [userId]
+  );
+}
+
+async function getStaffApplicationsByUser(userId) {
+  const db = await dbPromise;
+  return await db.all(
+    `SELECT * FROM staff_applications WHERE staff_id = ? ORDER BY created_at DESC`,
     [userId]
   );
 }
@@ -712,6 +742,9 @@ export {
   dbPromise,
   initDatabase,
   
+  getBotState,
+  setBotState,
+  
   addBugReport,
   updateBugStatus,
   getBugReportByMessageId,
@@ -726,6 +759,7 @@ export {
   removeAdditionalUserFromStaffApplication,
   createStaffApplication,
   getStaffApplicationByUser,
+  getStaffApplicationsByUser,
   getAllStaffApplications,
   getStaffApplicationById,
   updateStaffApplicationStatus,

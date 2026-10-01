@@ -1,5 +1,6 @@
 import mysql from 'mysql2/promise';
 import config from '../config.js';
+import { withRetry } from './mysqlUtil.js';
 
 let pool = null;
 
@@ -12,16 +13,25 @@ function getPool() {
       password: config.litebans?.mysql?.password,
       database: config.litebans?.mysql?.database || 's17_litebans',
       waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0
+      connectionLimit: 2,
+      queueLimit: 0,
+      maxIdle: 1,
+      idleTimeout: 30000,
+      connectTimeout: 10000,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 10000
     });
   }
   return pool;
 }
 
+async function query(sql, params) {
+  const p = getPool();
+  return withRetry(() => p.execute(sql, params));
+}
+
 async function getPlayerBans(uuid) {
-  const pool = getPool();
-  const [rows] = await pool.execute(
+  const [rows] = await query(
     `SELECT 
       id, reason, banned_by_name, time, until, active, removed_by_name, removed_by_date
      FROM litebans_bans 
@@ -34,8 +44,7 @@ async function getPlayerBans(uuid) {
 }
 
 async function getPlayerMutes(uuid) {
-  const pool = getPool();
-  const [rows] = await pool.execute(
+  const [rows] = await query(
     `SELECT 
       id, reason, banned_by_name, time, until, active, removed_by_name, removed_by_date
      FROM litebans_mutes 
@@ -48,10 +57,9 @@ async function getPlayerMutes(uuid) {
 }
 
 async function getPlayerKicks(uuid) {
-  const pool = getPool();
-  const [rows] = await pool.execute(
+  const [rows] = await query(
     `SELECT 
-      id, reason, banned_by_name, time
+      id, reason, banned_by_name, time 
      FROM litebans_kicks 
      WHERE uuid = ? 
      ORDER BY time DESC 
@@ -62,10 +70,9 @@ async function getPlayerKicks(uuid) {
 }
 
 async function getPlayerWarnings(uuid) {
-  const pool = getPool();
-  const [rows] = await pool.execute(
+  const [rows] = await query(
     `SELECT 
-      id, reason, banned_by_name, time, warned
+      id, reason, banned_by_name, time, warned 
      FROM litebans_warnings 
      WHERE uuid = ? 
      ORDER BY time DESC 
@@ -76,8 +83,7 @@ async function getPlayerWarnings(uuid) {
 }
 
 async function getPlayerHistory(uuid) {
-  const pool = getPool();
-  const [rows] = await pool.execute(
+  const [rows] = await query(
     `SELECT name, ip, date 
      FROM litebans_history 
      WHERE uuid = ? 
@@ -89,8 +95,7 @@ async function getPlayerHistory(uuid) {
 }
 
 async function getActiveBan(uuid) {
-  const pool = getPool();
-  const [rows] = await pool.execute(
+  const [rows] = await query(
     `SELECT * FROM litebans_bans 
      WHERE uuid = ? AND active = 1 
      AND (until = 0 OR until > UNIX_TIMESTAMP() * 1000)`,
@@ -100,8 +105,7 @@ async function getActiveBan(uuid) {
 }
 
 async function getActiveMute(uuid) {
-  const pool = getPool();
-  const [rows] = await pool.execute(
+  const [rows] = await query(
     `SELECT * FROM litebans_mutes 
      WHERE uuid = ? AND active = 1 
      AND (until = 0 OR until > UNIX_TIMESTAMP() * 1000)`,
@@ -112,6 +116,7 @@ async function getActiveMute(uuid) {
 
 export {
   getPool,
+  query,
   getPlayerBans,
   getPlayerMutes,
   getPlayerKicks,
