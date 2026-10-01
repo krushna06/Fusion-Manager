@@ -15,6 +15,7 @@ const COLORS = {
   FG_MAGENTA: '\x1b[35m',
   FG_CYAN: '\x1b[36m',
   FG_WHITE: '\x1b[37m',
+  FG_GRAY: '\x1b[90m',
 
   BG_BLACK: '\x1b[40m',
   BG_RED: '\x1b[41m',
@@ -32,10 +33,15 @@ const LOG_LEVELS = {
   INFO: 2,
   DEBUG: 3,
   SUCCESS: 4,
-  LOAD: 5
+  LOAD: 5,
+  VERBOSE: 6
 };
 
 let currentLogLevel = LOG_LEVELS.LOAD;
+
+if (process.env.VERBOSE_LOGGING === 'true') {
+  currentLogLevel = LOG_LEVELS.VERBOSE;
+}
 
 function setLogLevel(level) {
   if (Object.values(LOG_LEVELS).includes(level)) {
@@ -90,6 +96,14 @@ function debug(message) {
     console.log(
       `${COLORS.FG_MAGENTA}${COLORS.BRIGHT}[DEBUG]${COLORS.RESET} ` +
       `${COLORS.FG_WHITE}${message}${COLORS.RESET}`
+    );
+  }
+}
+
+function verbose(message) {
+  if (currentLogLevel >= LOG_LEVELS.VERBOSE) {
+    console.log(
+      `${COLORS.FG_GRAY}[VERBOSE]${COLORS.RESET} ${message}`
     );
   }
 }
@@ -220,6 +234,7 @@ export {
   warn,
   info,
   debug,
+  verbose,
   success,
   load,
   startupTable

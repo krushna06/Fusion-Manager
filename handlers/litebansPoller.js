@@ -9,6 +9,7 @@ import { getPlayerByUUID } from '../database/planDb.js';
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import config from '../config.js';
 import { getSharedLinkerDb } from '../database/linkerDb.js';
+import { verbose } from '../utils/logger.js';
 
 const POLL_INTERVAL = 30000;
 const PUNISHMENT_TYPES = ['bans', 'mutes', 'kicks', 'warnings'];
@@ -265,11 +266,24 @@ async function pollOnce(client) {
       console.error('Error saving LiteBans poller state:', error.message)
     );
   }
+
+  if (announced > 0) {
+    verbose(`LiteBans poller announced ${announced} new punishment(s).`);
+  }
 }
 
 export async function initLitebansPoller(client) {
   await loadLastIds().catch(error =>
     console.error('Error loading LiteBans poller state:', error.message)
+  );
+
+  const unseeded = PUNISHMENT_TYPES.filter(type => !seeded[type]);
+  verbose(
+    `LiteBans poller active. Only reporting punishments recorded after ` +
+    `${new Date(RUNTIME_START).toISOString()}. ` +
+    (unseeded.length > 0
+      ? `Starting fresh for: ${unseeded.join(', ')}.`
+      : `Resuming from saved marks: ${PUNISHMENT_TYPES.map(t => `${t}=${lastIds[t]}`).join(', ')}.`)
   );
 
   setInterval(async () => {

@@ -3,7 +3,7 @@ import { initDatabase } from '../../database/mainDb.js';
 import config from '../../config/config.json' with { type: 'json' };
 import fs from 'fs';
 import path from 'path';
-import { load, success, info, error } from '../../utils/logger.js';
+import { load, verbose, info, error } from '../../utils/logger.js';
 
 export default {
   once: true,
@@ -37,7 +37,7 @@ export default {
         { body: commands }
       );
       
-      success(`Registered ${commands.length} slash commands`);
+      verbose(`Registered ${commands.length} slash commands`);
     } catch (err) {
       error('Failed during initialization', err);
     }
