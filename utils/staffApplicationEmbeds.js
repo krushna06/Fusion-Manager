@@ -1,7 +1,7 @@
 import { EmbedBuilder } from 'discord.js';
 import { staffApplicationQuestions } from './staffApplicationQuestions.js';
 
-const EMBED_TOTAL_CHAR_LIMIT = 6000;
+const MESSAGE_EMBED_CHAR_LIMIT = 6000;
 const EMBED_FIELD_LIMIT = 25;
 const FIELD_NAME_LIMIT = 256;
 const FIELD_VALUE_LIMIT = 1024;
@@ -9,7 +9,11 @@ const TITLE_LIMIT = 256;
 const FOOTER_LIMIT = 200;
 const TITLE_NAME_LIMIT = 48;
 
-const OVERHEAD_RESERVE = 400;
+const TARGET_EMBED_CHARS = 1900;
+
+export const EMBEDS_PER_MESSAGE = 10;
+
+const OVERHEAD_RESERVE = 200;
 
 const SECTIONS = [
   { label: 'General Information', questions: staffApplicationQuestions.slice(0, 10) },
@@ -41,7 +45,7 @@ function buildField(responses, question) {
 }
 
 function packPages(responses) {
-  const budget = EMBED_TOTAL_CHAR_LIMIT - OVERHEAD_RESERVE;
+  const budget = TARGET_EMBED_CHARS - OVERHEAD_RESERVE;
   const pages = [];
   let page = { section: SECTIONS[0].label, fields: [], cost: 0 };
 
@@ -78,6 +82,18 @@ function packPages(responses) {
   return pages;
 }
 
+function embedCost(embed) {
+  const json = embed.toJSON();
+  let total = (json.title || '').length + (json.description || '').length +
+    (json.footer?.text || '').length + (json.author?.name || '').length;
+
+  for (const field of json.fields || []) {
+    total += (field.name || '').length + (field.value || '').length;
+  }
+
+  return total;
+}
+
 export function buildStaffApplicationEmbeds(responses, user, options = {}) {
   const answers = responses || {};
   const applicant = user || {};
@@ -112,6 +128,38 @@ export function buildStaffApplicationEmbeds(responses, user, options = {}) {
     return embed;
   });
 }
+
+export function groupEmbedsIntoMessages(embeds, limit = MESSAGE_EMBED_CHAR_LIMIT) {
+  const batches = [];
+  let current = [];
+  let currentCost = 0;
+
+  for (const embed of embeds) {
+    const cost = embedCost(embed);
+    const full = current.length >= EMBEDS_PER_MESSAGE || currentCost + cost > limit;
+
+    if (full && current.length > 0) {
+      batches.push(current);
+      current = [];
+      currentCost = 0;
+    }
+
+    current.push(embed);
+    currentCost += cost;
+  }
+
+  if (current.length > 0) {
+    batches.push(current);
+  }
+
+  return batches;
+}
+
+export const EMBED_LIMITS = {
+  messageTotal: MESSAGE_EMBED_CHAR_LIMIT,
+  targetPerEmbed: TARGET_EMBED_CHARS,
+  maxPerMessage: EMBEDS_PER_MESSAGE
+};
 
 export function buildStaffApplicationText(responses, user) {
   const answers = responses || {};

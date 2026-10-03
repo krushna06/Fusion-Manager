@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
 import {
   getStaffApplicationByChannel,
   getStaffApplicationsByUser
@@ -6,12 +6,10 @@ import {
 import { getSharedLinkerDb } from '../../database/linkerDb.js';
 import {
   buildStaffApplicationEmbeds,
-  buildStaffApplicationText
+  groupEmbedsIntoMessages
 } from '../../utils/staffApplicationEmbeds.js';
 import { staffApplicationQuestions } from '../../utils/staffApplicationQuestions.js';
 import { hasStaffApplicationReviewPermission } from '../../utils/staffPermissions.js';
-
-const EMBEDS_PER_MESSAGE = 10;
 
 function parseUserId(input) {
   if (!input) return null;
@@ -202,38 +200,17 @@ export default {
         footerText: `Application #${application.id} - ${applicant.tag}`
       });
 
-      const rawJson = Buffer.from(JSON.stringify({
-        application_id: application.id,
-        channel_id: application.channel_id,
-        staff_id: application.staff_id,
-        status: application.status,
-        application_state: application.application_state,
-        current_question_step: application.current_question_step,
-        created_at: application.created_at,
-        responses
-      }, null, 2), 'utf-8');
+      await interaction.editReply({ embeds: [metaEmbed] });
 
-      const files = [
-        new AttachmentBuilder(rawJson, { name: `staffapp-${application.id}-responses.json` }),
-        new AttachmentBuilder(Buffer.from(buildStaffApplicationText(responses, applicant), 'utf-8'), {
-          name: `staffapp-${application.id}-responses.txt`
-        })
-      ];
+      const batches = groupEmbedsIntoMessages(embeds);
 
-      await interaction.editReply({ embeds: [metaEmbed], files });
-
-      const chunks = [];
-      for (let i = 0; i < embeds.length; i += EMBEDS_PER_MESSAGE) {
-        chunks.push(embeds.slice(i, i + EMBEDS_PER_MESSAGE));
-      }
-
-      for (const chunk of chunks) {
+      for (const batch of batches) {
         try {
-          await interaction.followUp({ embeds: chunk, flags: MessageFlags.Ephemeral });
+          await interaction.followUp({ embeds: batch, flags: MessageFlags.Ephemeral });
         } catch (sendError) {
           console.error('Error sending staff application answer embeds:', sendError);
           await interaction.followUp({
-            content: 'The answer embeds could not be displayed. The full answers are in the attached files above.',
+            content: 'The answer embeds could not be displayed. Re-run this command to try again.',
             flags: MessageFlags.Ephemeral
           }).catch(console.error);
           break;

@@ -1,8 +1,13 @@
 import { getStaffApplicationByChannel, updateApplicationQuestionStep, updateApplicationState, updateApplicationResponses } from '../../../database/mainDb.js';
 import { deleteStaffApplication } from '../../../database/models/staffApplication.js';
 import { staffApplicationQuestions } from '../../../utils/staffApplicationQuestions.js';
-import { buildStaffApplicationEmbeds, buildStaffApplicationText } from '../../../utils/staffApplicationEmbeds.js';
+import {
+  buildStaffApplicationEmbeds,
+  buildStaffApplicationText,
+  groupEmbedsIntoMessages
+} from '../../../utils/staffApplicationEmbeds.js';
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder } from 'discord.js';
+import { verbose } from '../../../utils/logger.js';
 
 export const questionTimestamps = new Map();
 
@@ -56,12 +61,30 @@ function buildDecisionRow(channelId) {
     );
 }
 
-async function postAsFile(channel, responses, author) {
+async function postAsFile(channel, responses, author, channelId) {
   const buffer = Buffer.from(buildStaffApplicationText(responses, author), 'utf-8');
   return channel.send({
-    content: 'The application embeds could not be posted, so the answers are attached as a text file instead.',
-    files: [new AttachmentBuilder(buffer, { name: 'staff-application-responses.txt' })]
+    content: 'The summary embeds could not be posted, so the full answers are attached as a text file instead.',
+    files: [new AttachmentBuilder(buffer, { name: 'staff-application-responses.txt' })],
+    components: [buildDecisionRow(channelId)]
   });
+}
+
+async function postAnswerEmbeds(channel, responses, author, footerText) {
+  const embeds = buildStaffApplicationEmbeds(responses, author, { footerText });
+  const batches = groupEmbedsIntoMessages(embeds);
+  const row = buildDecisionRow(channel.id);
+
+  for (let i = 0; i < batches.length; i++) {
+    const isLast = i === batches.length - 1;
+    await channel.send({
+      content: i === 0 ? SUBMIT_MARKER : undefined,
+      embeds: batches[i],
+      components: isLast ? [row] : []
+    });
+  }
+
+  return batches.length;
 }
 
 async function finalizeApplication(message, responses) {
@@ -76,19 +99,18 @@ async function finalizeApplication(message, responses) {
 
   let posted = false;
   try {
-    const embeds = buildStaffApplicationEmbeds(responses, message.author, {
-      footerText: `Application channel: ${channel.name}`
-    });
-    await channel.send({
-      content: SUBMIT_MARKER,
-      embeds,
-      components: [buildDecisionRow(channel.id)]
-    });
+    const batches = await postAnswerEmbeds(
+      channel,
+      responses,
+      message.author,
+      `Application channel: ${channel.name}`
+    );
     posted = true;
+    verbose(`Posted staff application summary in ${batches} message(s).`);
   } catch (error) {
-    console.error('Error sending staff application summary embed:', error);
+    console.error('Error sending staff application summary embeds:', error);
     try {
-      await postAsFile(channel, responses, message.author);
+      await postAsFile(channel, responses, message.author, channel.id);
       posted = true;
     } catch (fileError) {
       console.error('Error sending staff application responses as file:', fileError);
